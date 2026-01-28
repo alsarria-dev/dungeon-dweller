@@ -12,17 +12,17 @@
 
 ## 📖 Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Getting Started](#getting-started)
-- [How to Play](#how-to-play)
-- [Game Mechanics](#game-mechanics)
-- [Project Structure](#project-structure)
-- [Technologies](#technologies)
-- [Controls](#controls)
-- [Development](#development)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
+- [Overview](#-overview)
+- [Features](#-features)
+- [Getting Started](#-getting-started)
+- [How to Play](#-how-to-play)
+- [Game Mechanics](#-game-mechanics)
+- [Project Structure](#-project-structure)
+- [Technologies](#-technologies)
+- [Controls](#-controls)
+- [Development](#-development)
+- [Roadmap](#-roadmap)
+- [Contributing](#-contributing)
 
 ---
 
