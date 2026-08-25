@@ -1,4 +1,15 @@
 <!DOCTYPE html>
+<!--
+    Dungeon Dweller - main menu, and the entry point for the whole project.
+
+    Two controls: a link into the game and a button that opens the instructions
+    panel. src/index.js only handles the panel toggle and the menu music - the
+    navigation itself is the plain <a> below, so no script is needed to start a
+    game.
+
+    This page sits at the repo root, so its paths use "./". The game page is one
+    directory down and uses "../" for everything; do not copy paths between them.
+-->
 <html lang="en">
 
 <head>
@@ -10,6 +21,8 @@
     <link rel="icon" href="./images/favicon.ico" type="image/x-icon" />
     <link rel="preload" href="./styles/fonts/MedievalSharp-Regular.ttf" as="font" type="font/ttf" crossorigin>
     <link rel="preload" href="./images/menu_bg.jpeg" as="image">
+    <!-- The player is almost certainly about to click Start Game, so fetch it
+         during the time they spend reading the menu. -->
     <link rel="prefetch" href="./html/game.html" as="document">
     <link rel="stylesheet" href="./styles/index_styles.css">
 </head>
@@ -21,6 +34,8 @@
         <div class="crest sword" aria-hidden="true"></div>
     </header>
 
+    <!-- Hidden by index.js while the instructions panel is open, so the menu's
+         controls leave the tab order rather than sitting behind the dialog. -->
     <nav id="options" aria-label="Main menu">
         <a id="startGame" class="menu-item" href="./html/game.html">Start Game</a>
         <button id="instructions" class="menu-item" type="button" aria-expanded="false"
@@ -56,6 +71,8 @@
         <button id="closeInstructions" class="menu-item menu-item-small" type="button">Back</button>
     </div>
 
+    <!-- Menu music (started on the first click or key press, since browsers block
+         autoplay before that) and the click sound used by the menu buttons. -->
     <audio id="intro_audio" src="./sounds/intro_audio.mp3" preload="metadata" loop></audio>
     <audio id="openBoxAudio" src="./sounds/openBox.mp3" preload="auto"></audio>
     <script src="./src/index.js"></script>

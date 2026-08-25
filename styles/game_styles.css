@@ -1,9 +1,36 @@
+/*
+    Dungeon Dweller - game page styles.
+
+    This file is not purely presentational. It holds three things the simulation
+    depends on, so read it as part of the runtime:
+
+    1. ENTITY DIMENSIONS. Every entity class creates its element, then measures it
+       with getBoundingClientRect() and uses the result as its hitbox. The sizes
+       below ARE the collision boxes - change `.enemy`'s height and you have
+       changed how the game plays. A new entity type must be given an explicit
+       size here or it will measure as 0x0 and never collide with anything.
+
+    2. SPRITE STATE. JavaScript never assigns a background-image. It writes
+       data-facing="up|down|left|right" and toggles `.walking`; the selectors here
+       turn that into the right image and walk cycle. Renaming those selectors
+       breaks sprites silently.
+
+    3. THE EXPLOSION TRANSLATION. See @keyframes explode at the foot of the file.
+
+    Paths are relative to html/game.html's directory, hence the "../" prefixes.
+
+    Section order: layout, player, enemies, projectiles, scenery, HUD, overlay,
+    keyframes, media queries.
+*/
+
 @font-face {
     font-family: 'medieval';
     src: url("./fonts/MedievalSharp-Regular.ttf") format("truetype");
     font-display: swap;
 }
 
+/* Shared palette. --hp/--mp also colour the enemy bars and HUD meters, so a
+   change here propagates through every gauge in the game. */
 :root {
     --hp: #d2373c;
     --hp-glow: #ff6b5e;
@@ -71,6 +98,9 @@ body {
 }
 
 /* ------------------------------------------------------------------ player */
+/* 100x50 is the player's hitbox as well as its appearance - the Player class
+   measures this element on construction. The sprite inside is deliberately
+   slightly smaller, so the collision box hugs the body rather than the artwork. */
 #player {
     height: 100px;
     width: 50px;
@@ -156,6 +186,10 @@ body {
 }
 
 /* ------------------------------------------------------------------ enemies */
+/* Class names here are the contract with ENEMY_VARIANTS in src/elements.js:
+   .enemy / .enemySpecial are the bodies (and therefore the hitboxes), .iconEnemy
+   / .iconEnemySpecial the sprite layers, .health-barEnemy* the bar fills. Both
+   variants share the same skeleton artwork, scaled up for the brute. */
 .enemy,
 .enemySpecial {
     display: flex;
@@ -331,7 +365,12 @@ body {
 
 /* ---------------------------------------------------------------------- HUD */
 /* Entities depth-sort themselves into z-index 2..~500, so the UI sits well
-   above that band rather than being overlapped by a sprite near the bottom. */
+   above that band rather than being overlapped by a sprite near the bottom.
+   The full stacking plan: entities 2-500, fireballs 600, spear 700, low-health
+   vignette 1500, start hint 1900, HUD 2000, overlay 3000. New UI belongs above
+   1500; new field entities belong in the depth-sorted band.
+   `pointer-events: none` keeps the panels from swallowing clicks meant for the
+   arena beneath them. */
 #hud {
     position: absolute;
     inset: 0 0 auto 0;

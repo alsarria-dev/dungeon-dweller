@@ -1,3 +1,18 @@
+/*
+    Dungeon Dweller - main menu styles.
+
+    Purely presentational, unlike game_styles.css: nothing here is measured or
+    read back by JavaScript. src/index.js only toggles the `hidden` attribute on
+    the menu and the instructions panel.
+
+    Sizing leans on clamp() against viewport units so the menu scales smoothly
+    without breakpoints; the single media query at the foot only widens the
+    fixed-width blocks on narrow screens.
+
+    Paths are relative to index.html at the repo root - except the @font-face
+    below, which resolves relative to this stylesheet in styles/.
+*/
+
 @font-face {
     font-family: 'medieval';
     src: url("./fonts/MedievalSharp-Regular.ttf") format("truetype");

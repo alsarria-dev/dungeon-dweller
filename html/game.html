@@ -1,4 +1,25 @@
 <!DOCTYPE html>
+<!--
+    Dungeon Dweller - the game page.
+
+    Declares the DOM that src/script.js binds to at start-up. Almost every id here
+    is looked up by name in that file, so renaming one silently breaks the game.
+
+    IMPORTANT: this page lives in html/, one level below the repo root, so every
+    path is written with a "../" prefix. The same is true of the url()s in
+    game_styles.css and the warm-up paths in script.js.
+
+    What is declared where:
+      #game-area   the arena. Entities are absolutely positioned inside it, and
+                   its measured size becomes the world bounds.
+      #player      the only entity that exists in the markup; everything else is
+                   created at runtime. The Player class measures this element to
+                   get its hitbox.
+      #hud         score/kill/time readouts and the large HP and MP meters.
+      #overlay     empty shell reused for both the pause and game-over cards;
+                   script.js fills in the title, stats and buttons.
+      <audio>      the sound bank, registered by id through Sfx.register().
+-->
 <html lang="en">
 
 <head>
@@ -8,6 +29,8 @@
     <title>Dungeon Dweller</title>
     <link rel="icon" href="../images/favicon.ico" type="image/x-icon" />
     <link rel="preload" href="../styles/fonts/MedievalSharp-Regular.ttf" as="font" type="font/ttf" crossorigin>
+    <!-- Preload only what the first frame needs: the floor and the idle sprite.
+         The 36 walk-cycle frames are fetched after load by script.js instead. -->
     <link rel="preload" href="../images/stoneFloor.jpg" as="image">
     <link rel="preload" href="../images/character_down.png" as="image">
     <link rel="stylesheet" href="../styles/game_styles.css">
@@ -16,6 +39,10 @@
 <body>
     <div id="container">
         <div id="game-area">
+            <!-- The player. `.icon` is the sprite layer: its data-facing attribute
+                 is rewritten as the character turns, and CSS picks the image. The
+                 two small bars float above the character's head; the big meters in
+                 the HUD are separate elements. -->
             <div id="player">
                 <div class="icon" data-facing="down"></div>
                 <div class="player-bars">
@@ -24,6 +51,7 @@
                 </div>
             </div>
 
+            <!-- Red vignette, pulsed by CSS while health is at or below 25. -->
             <div id="low-health" aria-hidden="true"></div>
 
             <div id="hud">
@@ -60,11 +88,16 @@
                 </div>
             </div>
 
+            <!-- Controls reminder. Fades out on the first key press, which is also
+                 the gesture that unlocks audio. -->
             <div id="start-hint">
                 <kbd>WASD</kbd> move &middot; <kbd>K</kbd> strike &middot; <kbd>L</kbd> fireball &middot;
                 <kbd>P</kbd> pause
             </div>
 
+            <!-- Modal card, empty by design: showOverlay() populates the title,
+                 stats and buttons for both the pause and game-over states, and
+                 sets data-variant so CSS can colour them differently. -->
             <div id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title" aria-hidden="true">
                 <div id="overlay-card">
                     <h1 id="overlay-title"></h1>
@@ -75,6 +108,10 @@
         </div>
     </div>
 
+    <!-- The sound bank. script.js binds friendly names to these ids via
+         Sfx.register(). Preload hints are graded by urgency: effects that must
+         fire instantly use "auto", the music only needs "metadata", and the
+         game-over track is left until it is actually needed. -->
     <audio id="audioDead" src="../sounds/dead.mp3" preload="auto"></audio>
     <audio id="audioFireball" src="../sounds/fireball.mp3" preload="auto"></audio>
     <audio id="audioSlash" src="../sounds/slash.mp3" preload="auto"></audio>
@@ -83,6 +120,9 @@
     <audio id="audioGame" src="../sounds/gameMusic.mp3" preload="metadata" loop></audio>
     <audio id="audioGameOver" src="../sounds/gameOver.mp3" preload="none"></audio>
 
+    <!-- Order is required: elements.js publishes the DD global that script.js
+         destructures as it parses. Both are plain scripts, not modules, and sit at
+         the end of <body> so the DOM they query already exists. -->
     <script src="../src/elements.js"></script>
     <script src="../src/script.js"></script>
 </body>
