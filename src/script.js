@@ -443,24 +443,38 @@
     }
 
     /**
-     * Undo only the movement `entity` made itself where it would end up inside
-     * `blocker`, one axis at a time so it slides along the body instead of
-     * sticking. Unlike resolve(), this never displaces either party - an enemy
-     * that walks into a standing player leaves the player exactly where it was.
+     * Keep `entity` from driving deeper into `blocker`, one axis at a time so it
+     * slides along the body instead of sticking. Unlike resolve(), neither party
+     * is displaced: an enemy that walks into a standing player leaves the player
+     * exactly where it was.
+     *
+     * Only movement that *increases* penetration is undone. That matters because
+     * a chasing enemy closes the last couple of pixels itself, so the player is
+     * routinely already overlapping at the start of a step - reverting to the
+     * previous position there would pin the player in place with nowhere to go.
+     * Moving back out always reduces penetration, so an escape route always
+     * exists on both axes.
      */
     function blockMovement(entity, blocker, prevX, prevY) {
         if (!overlaps(entity, blocker)) return;
+
+        const width = entity.width;
+        const height = entity.height;
+        // Overlap along one axis; positive only when the two spans intersect.
+        const penX = (x) => Math.min(x + width, blocker.x + blocker.width) - Math.max(x, blocker.x);
+        const penY = (y) => Math.min(y + height, blocker.y + blocker.height) - Math.max(y, blocker.y);
+
         const movedX = entity.x;
         const movedY = entity.y;
+        const wasX = penX(prevX);
+        const wasY = penY(prevY);
 
-        entity.x = prevX;                        // blocked horizontally?
-        if (!overlaps(entity, blocker)) return;
+        // Settle X against the previous row, then Y against the settled column.
+        entity.y = prevY;
+        if (overlaps(entity, blocker) && penX(movedX) > wasX) entity.x = prevX;
 
-        entity.x = movedX;
-        entity.y = prevY;                        // blocked vertically?
-        if (!overlaps(entity, blocker)) return;
-
-        entity.x = prevX;                        // blocked both ways
+        entity.y = movedY;
+        if (overlaps(entity, blocker) && penY(movedY) > wasY) entity.y = prevY;
     }
 
     /**
