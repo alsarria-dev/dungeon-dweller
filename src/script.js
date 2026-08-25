@@ -1,356 +1,519 @@
-let frameCounter = 0;
-
-const gameAreaElement = document.querySelector("#game-area");
-const gameHeight = gameAreaElement.getBoundingClientRect().height;
-const gameWidth = gameAreaElement.getBoundingClientRect().width;
-
-const audioSlash = document.querySelector("#audioSlash");
-const audioFireball = document.querySelector("#audioFireball");
-const audioKill = document.querySelector("#audioKill");
-const audioDead = document.querySelector("#audioDead");
-const audioEnemySlash = document.querySelector("#audioEnemySlash");
-const audioGame = document.querySelector("#audioGame");
-const audioGameOver = document.querySelector("#audioGameOver");
-audioGame.loop = true;
-
-document.addEventListener("keydown", (keyEvent) => {
-    audioGame.play();
-});
-const mainLibraryObjects =
-{
-    playerElement: new gamePlayer(gameAreaElement),
-    arrayEnemy: [],
-    arrayFieldObjects: [],
-    arrayFireBalls: [],
-};
-
-let coordinateX = 0;
-let coordinateY = 0;
-
-const fieldObject1 = new fieldObject("lake1");
-coordinateX = gameWidth / 4 - fieldObject1.width / 2 - 120;
-coordinateY = gameHeight / 4 - fieldObject1.height / 2 + 30;
-fieldObject1.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject1);
-
-const fieldObject2 = new fieldObject("lake");
-coordinateX = gameWidth / 4 - fieldObject2.width / 2 - 80;
-coordinateY = 3 * gameHeight / 4 - fieldObject2.height / 2;
-fieldObject2.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject2);
-
-const fieldObject3 = new fieldObject("lake1");
-coordinateX = 3 * gameWidth / 4 - fieldObject3.width / 2 + 120;
-coordinateY = 3 * gameHeight / 4 - fieldObject3.height / 2 - 30;
-fieldObject3.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject3);
-
-const fieldObject4 = new fieldObject("lake");
-coordinateX = 3 * gameWidth / 4 - fieldObject4.width / 2 + 120;
-coordinateY = gameHeight / 4 - fieldObject4.height / 2 + 100;
-fieldObject4.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject4);
-
-const fieldObject5 = new fieldObject("rock");
-coordinateX = gameWidth / 2 - fieldObject5.width / 2 - 180;
-coordinateY = gameHeight / 4 - fieldObject5.height / 2 - 40;
-fieldObject5.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject5);
-
-const fieldObject6 = new fieldObject("rock");
-coordinateX = gameWidth / 2 - fieldObject6.width / 2 + 200;
-coordinateY = 3 * gameHeight / 4 - fieldObject6.height / 2 - 40;
-fieldObject6.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject6);
-
-const fieldObject7 = new fieldObject("rock1");
-coordinateX = gameWidth / 2 - fieldObject7.width / 2 + 500;
-coordinateY = 3 * gameHeight / 4 - fieldObject7.height / 2 - 500;
-fieldObject7.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject7);
-
-const fieldObject8 = new fieldObject("rock1");
-coordinateX = gameWidth / 2 - fieldObject8.width / 2 - 600;
-coordinateY = 3 * gameHeight / 4 - fieldObject8.height / 2 + 180;
-fieldObject8.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject8);
-
-const fieldObject9 = new fieldObject("rock1");
-coordinateX = gameWidth / 2 - fieldObject9.width / 2 - 200;
-coordinateY = 3 * gameHeight / 4 - fieldObject9.height / 2 - 100;
-fieldObject9.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject9);
-
-const fieldObject10 = new fieldObject("rock1");
-coordinateX = gameWidth / 2 + 200;
-coordinateY = gameHeight / 2 - 200;
-fieldObject10.move(coordinateY, coordinateX);
-mainLibraryObjects.arrayFieldObjects.push(fieldObject10);
-
-let enemySpecial = false;
-
-setInterval(() => {
-    if (!mainLibraryObjects.playerElement.gameOver) {
-        if (!enemySpecial || mainLibraryObjects.arrayEnemy.length < 5) {
-            const enemyObject = new gameEnemy(gameAreaElement)
-            enemyObject.createElement("enemy");
-            mainLibraryObjects.arrayEnemy.push(enemyObject);
-            mainLibraryObjects.arrayEnemy.forEach(element1 => {
-                mainLibraryObjects.arrayFieldObjects.forEach(element2 => element1.enemyCollission(element2));
-            });
-            if (mainLibraryObjects.arrayEnemy.length >= 4 && !enemySpecial) {
-                enemySpecial = true;
-                const enemyObject1 = new gameEnemySpecial(gameAreaElement)
-                enemyObject1.createElement("enemySpecial");
-                mainLibraryObjects.arrayEnemy.push(enemyObject1);
-            };
-        };
-    };
-}, 3500);
-
-setInterval(() => {
-    if (!mainLibraryObjects.playerElement.gameOver) {
-        enemySpecial = true;
-        const enemyObject1 = new gameEnemySpecial(gameAreaElement)
-        enemyObject1.createElement("enemySpecial");
-        mainLibraryObjects.arrayEnemy.push(enemyObject1);
-    };
-}, 25000)
-
-function spearThrow() {
-    const spear = document.createElement("div");
-    spear.classList.add("spear")
-    gameAreaElement.appendChild(spear);
-    const spearHeight = spear.getBoundingClientRect().height;
-    const spearWidth = spear.getBoundingClientRect().width;
-    const direction = mainLibraryObjects.playerElement.currentDirection;
-    let coordinateY = 0;
-    let coordinateX = 0;
-    if (direction === "up") {
-        spear.style.transform = "rotate(-30deg)";
-        coordinateY = mainLibraryObjects.playerElement.y - spearHeight + 30;
-        coordinateX = mainLibraryObjects.playerElement.x + mainLibraryObjects.playerElement.width / 2 - spearWidth / 2
-    } else if (direction === "down") {
-        spear.style.transform = "rotate(150deg)";
-        coordinateY = mainLibraryObjects.playerElement.y + mainLibraryObjects.playerElement.height - 30;
-        coordinateX = mainLibraryObjects.playerElement.x + mainLibraryObjects.playerElement.width / 2 - spearWidth / 2
-    } else if (direction === "left") {
-        spear.style.transform = "rotate(250deg)";
-        coordinateY = mainLibraryObjects.playerElement.y + mainLibraryObjects.playerElement.height / 2 - spearHeight / 2;
-        coordinateX = mainLibraryObjects.playerElement.x - spearWidth + 30;
-    } else if (direction === "right") {
-        spear.style.transform = "rotate(45deg)";
-        coordinateY = mainLibraryObjects.playerElement.y + mainLibraryObjects.playerElement.height / 2 - spearHeight / 2;
-        coordinateX = mainLibraryObjects.playerElement.x + mainLibraryObjects.playerElement.width - 30;
-    }
-    spear.style.top = `${coordinateY}px`;
-    spear.style.left = `${coordinateX}px`;
-    setTimeout(() => {
-        spear.remove()
-    }, 80)
-};
-
-let timer_format = "";
-let counter = 0;
-
-const timer = setInterval(() => {
-    counter++;
-    if (mainLibraryObjects.playerElement.gameOver) {
-        clearInterval(timer);
-    };
-}, 1000);
-
-let enemyCounter = 0;
-
-function gameLoop() {
-    if (!mainLibraryObjects.playerElement.gameOver) {
-        frameCounter++;
-        mainLibraryObjects.playerElement.move();
-        mainLibraryObjects.arrayFireBalls.forEach((element, i) => element.move(i));
-        mainLibraryObjects.arrayEnemy.forEach(element => {
-            // if (element.idleState(mainLibraryObjects.playerElement)) {
-            element.chase(mainLibraryObjects.playerElement);
-            // } else {
-            //     element.idleMovement();
-            // };
-        });
-        mainLibraryObjects.arrayFieldObjects.forEach(element1 => {
-            mainLibraryObjects.arrayEnemy.forEach(element2 => element2.enemyCollission(element1))
-        });
-        mainLibraryObjects.arrayEnemy.forEach(element => mainLibraryObjects.playerElement.playerCollission(element));
-        mainLibraryObjects.arrayFieldObjects.forEach(element => mainLibraryObjects.playerElement.playerCollission(element));
-        mainLibraryObjects.arrayEnemy.forEach(element => {
-            element.enemyCollission(mainLibraryObjects.playerElement);
-            element.attack1(mainLibraryObjects.playerElement);
-        });
-        mainLibraryObjects.arrayFireBalls.forEach((element1, i) => {
-            mainLibraryObjects.arrayFieldObjects.forEach(element2 => {
-                if (!element2.element.classList[0].includes("lake")) {
-                    element1.fireBallCollission(element2, i, 0, mainLibraryObjects.playerElement)
-                };
-            });
-            mainLibraryObjects.arrayEnemy.forEach((element2, j) => element1.fireBallCollission(element2, i, j, mainLibraryObjects.playerElement))
-        })
-        window.requestAnimationFrame(gameLoop);
-    } else {
-        const banner = document.createElement("div");
-        banner.classList.add("banner");
-        gameAreaElement.appendChild(banner);
-        const bannerWrapper = document.createElement("div");
-        bannerWrapper.classList.add("bannerWrapper");
-        banner.appendChild(bannerWrapper);
-        const info1 = document.createElement("div");
-        info1.classList.add("bannerInfo");
-        info1.innerHTML = `Eemies defeated: ${enemyCounter}`
-        bannerWrapper.appendChild(info1);
-        const info2 = document.createElement("div");
-        info2.classList.add("bannerInfo");
-        info2.innerHTML = `Total score: ${mainLibraryObjects.playerElement.score}`
-        bannerWrapper.appendChild(info2);
-        const info3 = document.createElement("div");
-        info3.classList.add("bannerInfo");
-        info3.innerHTML = `Time survived: ${counter}`
-        bannerWrapper.appendChild(info3);
-        const bannerWrapper2 = document.createElement("div");
-        bannerWrapper2.classList.add("bannerWrapper");
-        banner.appendChild(bannerWrapper2);
-        const info4 = document.createElement("a");
-        info4.href = "../html/game.html"
-        info4.classList.add("bannerInfo2");
-        info4.classList.add("popping");
-        info4.innerHTML = "Restart"
-        info4.style.textDecoration = 'none';
-        info4.style.color = 'inherit'
-        bannerWrapper2.appendChild(info4);
-        const info5 = document.createElement("a");
-        info5.href = "../index.html"
-        info5.style.textDecoration = 'none';
-        info5.style.color = 'inherit'
-        info5.classList.add("bannerInfo2");
-        info5.classList.add("popping");
-        info5.innerHTML = "Exit"
-        bannerWrapper2.appendChild(info5);
-    };
-};
-
-window.requestAnimationFrame(gameLoop);
-
-document.addEventListener("keydown", (keyEvent) => {
-    if (keyEvent.repeat) return;
-    if (keyEvent.key === "w") {
-        mainLibraryObjects.playerElement.finalDirection = "up";
-        mainLibraryObjects.playerElement.currentDirection = "up";
-        mainLibraryObjects.playerElement.element.querySelector(".icon").classList.toggle("characterMoveUp")
-        mainLibraryObjects.playerElement.direction[0] = true;
-    } else if (keyEvent.key === "s") {
-        mainLibraryObjects.playerElement.finalDirection = "down";
-        mainLibraryObjects.playerElement.currentDirection = "down";
-        mainLibraryObjects.playerElement.element.querySelector(".icon").classList.toggle("characterMoveDown")
-        mainLibraryObjects.playerElement.direction[1] = true;
-    } else if (keyEvent.key === "a") {
-        mainLibraryObjects.playerElement.finalDirection = "left";
-        mainLibraryObjects.playerElement.currentDirection = "left";
-        mainLibraryObjects.playerElement.element.querySelector(".icon").classList.toggle("characterMoveLeft")
-        mainLibraryObjects.playerElement.direction[2] = true;
-    } else if (keyEvent.key === "d") {
-        mainLibraryObjects.playerElement.finalDirection = "right";
-        mainLibraryObjects.playerElement.currentDirection = "right";
-        mainLibraryObjects.playerElement.element.querySelector(".icon").classList.toggle("characterMoveRight")
-        mainLibraryObjects.playerElement.direction[3] = true;
-    };
-});
-
-
-document.addEventListener("keyup", (keyEvent) => {
-    if (keyEvent.repeat) return;
-    if (keyEvent.key === "w") {
-        mainLibraryObjects.playerElement.element.querySelector(".icon").classList.toggle("characterMoveUp")
-        mainLibraryObjects.playerElement.direction[0] = false;
-    } else if (keyEvent.key === "s") {
-        mainLibraryObjects.playerElement.element.querySelector(".icon").classList.toggle("characterMoveDown")
-        mainLibraryObjects.playerElement.direction[1] = false;
-    } else if (keyEvent.key === "a") {
-        mainLibraryObjects.playerElement.element.querySelector(".icon").classList.toggle("characterMoveLeft")
-        mainLibraryObjects.playerElement.direction[2] = false;
-    } else if (keyEvent.key === "d") {
-        mainLibraryObjects.playerElement.element.querySelector(".icon").classList.toggle("characterMoveRight")
-        mainLibraryObjects.playerElement.direction[3] = false;
-    };
-});
-
-document.addEventListener("keydown", (keyEvent) => {
-    if (!mainLibraryObjects.playerElement.gameOver) {
-        if (keyEvent.repeat) return;
-        if (keyEvent.key === "k") {
-            if (audioSlash.paused) {
-                audioSlash.play();
-            } else {
-                audioSlash.currentTime = 0;
-            };
-            spearThrow();
-            mainLibraryObjects.arrayEnemy.forEach((element, i) => {
-                mainLibraryObjects.playerElement.attack1(element);
-                if (element.life <= 0) {
-                    if (audioKill.paused) {
-                        audioKill.play();
-                    } else {
-                        audioKill.currentTime = 0;
-                    };
-                    enemyCounter++;
-                    mainLibraryObjects.arrayEnemy.splice(i, 1);
-                };
-            });
-        };
-    };
-});
-
-document.addEventListener("keydown", (keyEvent) => {
-    if (!mainLibraryObjects.playerElement.gameOver) {
-        if (keyEvent.repeat) return;
-        if (keyEvent.key === "l") {
-            if (mainLibraryObjects.playerElement.mana >= 20) {
-                if (audioFireball.paused) {
-                    audioFireball.play();
-                } else {
-                    audioFireball.currentTime = 0;
-                };
-            };
-            spellThrown = new fireBall;
-            spellThrown.createElement(mainLibraryObjects.playerElement);
-        };
-    };
-});
-
-document.addEventListener("keydown", (keyEvent) => {
-    if (!mainLibraryObjects.playerElement.gameOver) {
-        if (keyEvent.repeat) return;
-        if (keyEvent.key === "l") {
-            if (mainLibraryObjects.playerElement.mana >= 20) {
-                if (audioFireball.paused) {
-                    audioFireball.play();
-                } else {
-                    audioFireball.currentTime = 0;
-                };
-            };
-            spellThrown = new fireBall;
-            spellThrown.createElement(mainLibraryObjects.playerElement);
-        };
-    };
-});
-
-window.addEventListener('resize', function () {
+/**
+ * Dungeon Dweller - game orchestrator.
+ *
+ * Runs a fixed-timestep simulation (accumulator + clamped frame time) so the
+ * game plays identically regardless of the display's refresh rate.
+ */
+(() => {
     "use strict";
-    window.location.reload();
-});
 
-setInterval(() => {
-    if (!mainLibraryObjects.playerElement.gameOver) {
-        if (mainLibraryObjects.playerElement.mana < 100) {
-            mainLibraryObjects.playerElement.mana += 10;
-            if (mainLibraryObjects.playerElement.mana > 100) {
-                mainLibraryObjects.playerElement.mana = 100;
-            };
-        };
-        this.document.querySelector(".mana-bar").style.width = `${mainLibraryObjects.playerElement.mana}%`
+    const { CONFIG, clamp, overlaps, resolve, Sfx, Player, Enemy, FieldObject, Fireball } = DD;
+
+    // ------------------------------------------------------------------ dom
+    const gameAreaElement = document.querySelector("#game-area");
+    const hud = {
+        health: document.querySelector("#hud-health"),
+        healthValue: document.querySelector("#hud-health-value"),
+        mana: document.querySelector("#hud-mana"),
+        manaValue: document.querySelector("#hud-mana-value"),
+        score: document.querySelector("#hud-score"),
+        kills: document.querySelector("#hud-kills"),
+        time: document.querySelector("#hud-time"),
     };
-}, 1000);
+    const overlay = document.querySelector("#overlay");
+    const overlayTitle = document.querySelector("#overlay-title");
+    const overlayStats = document.querySelector("#overlay-stats");
+    const overlayActions = document.querySelector("#overlay-actions");
+    const hint = document.querySelector("#start-hint");
+    const vignette = document.querySelector("#low-health");
+
+    Sfx.register("slash", "#audioSlash");
+    Sfx.register("fireball", "#audioFireball");
+    Sfx.register("kill", "#audioKill");
+    Sfx.register("dead", "#audioDead");
+    Sfx.register("enemySlash", "#audioEnemySlash");
+    Sfx.register("music", "#audioGame");
+    Sfx.register("gameOver", "#audioGameOver");
+
+    // ---------------------------------------------------------------- state
+    const bounds = { element: gameAreaElement, width: 0, height: 0 };
+
+    function measureBounds() {
+        const rect = gameAreaElement.getBoundingClientRect();
+        bounds.width = rect.width;
+        bounds.height = rect.height;
+    }
+    measureBounds();
+
+    const player = new Player(bounds);
+    const enemies = [];
+    const fireballs = [];
+    const fieldObjects = [];
+
+    const state = {
+        running: true,
+        paused: false,
+        gameOver: false,
+        elapsed: 0,          // ms of simulated play time
+        kills: 0,
+        nextSpawn: CONFIG.spawn.interval,
+        nextBoss: CONFIG.spawn.bossInterval,
+        nextManaTick: CONFIG.player.manaRegenInterval,
+        bossSpawned: false,
+    };
+
+    // ---------------------------------------------------------------- world
+    // Positions are expressed relative to the arena so a resize re-lays them out
+    // instead of reloading the page and destroying the run.
+    const FIELD_LAYOUT = [
+        { kind: "lake1", at: (W, H, w, h) => [W / 4 - w / 2 - 120, H / 4 - h / 2 + 30] },
+        { kind: "lake", at: (W, H, w, h) => [W / 4 - w / 2 - 80, 3 * H / 4 - h / 2] },
+        { kind: "lake1", at: (W, H, w, h) => [3 * W / 4 - w / 2 + 120, 3 * H / 4 - h / 2 - 30] },
+        { kind: "lake", at: (W, H, w, h) => [3 * W / 4 - w / 2 + 120, H / 4 - h / 2 + 100] },
+        { kind: "rock", at: (W, H, w, h) => [W / 2 - w / 2 - 180, H / 4 - h / 2 - 40] },
+        { kind: "rock", at: (W, H, w, h) => [W / 2 - w / 2 + 200, 3 * H / 4 - h / 2 - 40] },
+        { kind: "rock1", at: (W, H, w, h) => [W / 2 - w / 2 + 500, 3 * H / 4 - h / 2 - 500] },
+        { kind: "rock1", at: (W, H, w, h) => [W / 2 - w / 2 - 600, 3 * H / 4 - h / 2 + 180] },
+        { kind: "rock1", at: (W, H, w, h) => [W / 2 - w / 2 - 200, 3 * H / 4 - h / 2 - 100] },
+        { kind: "rock1", at: (W, H) => [W / 2 + 200, H / 2 - 200] },
+    ];
+
+    function layoutField() {
+        for (const object of fieldObjects) {
+            const [x, y] = object.spec.at(bounds.width, bounds.height, object.width, object.height);
+            object.moveTo(x, y);
+        }
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const spec of FIELD_LAYOUT) {
+        const object = new FieldObject(spec.kind, bounds);
+        object.spec = spec;
+        fieldObjects.push(object);
+        fragment.appendChild(object.element);
+    }
+    gameAreaElement.appendChild(fragment);
+    layoutField();
+
+    // ---------------------------------------------------------------- input
+    const KEYMAP = {
+        w: "up", arrowup: "up",
+        s: "down", arrowdown: "down",
+        a: "left", arrowleft: "left",
+        d: "right", arrowright: "right",
+    };
+    const held = { up: false, down: false, left: false, right: false };
+    const facingStack = [];   // most recently pressed direction wins
+
+    const input = {
+        get up() { return held.up; },
+        get down() { return held.down; },
+        get left() { return held.left; },
+        get right() { return held.right; },
+        get facing() { return facingStack[facingStack.length - 1] || null; },
+    };
+
+    function releaseAll() {
+        held.up = held.down = held.left = held.right = false;
+        facingStack.length = 0;
+    }
+
+    let audioUnlocked = false;
+    function unlockAudio() {
+        if (audioUnlocked) return;
+        audioUnlocked = true;
+        Sfx.loop("music");
+        if (hint) hint.classList.add("is-hidden");
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", releaseAll);
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden && !state.gameOver) setPaused(true);
+    });
+
+    function onKeyDown(event) {
+        const key = event.key.toLowerCase();
+        unlockAudio();
+
+        if (state.gameOver) {
+            if (key === "enter") window.location.reload();
+            if (key === "escape") window.location.href = "../index.html";
+            return;
+        }
+
+        if (key === "p" || key === "escape") {
+            if (!event.repeat) setPaused(!state.paused);
+            return;
+        }
+        if (state.paused) return;
+
+        const direction = KEYMAP[key];
+        if (direction) {
+            event.preventDefault();
+            if (!held[direction]) {
+                held[direction] = true;
+                facingStack.push(direction);
+            }
+            return;
+        }
+
+        if (event.repeat) return;
+        if (key === "k") meleeAttack();
+        else if (key === "l") castFireball();
+    }
+
+    function onKeyUp(event) {
+        const direction = KEYMAP[event.key.toLowerCase()];
+        if (!direction) return;
+        held[direction] = false;
+        const index = facingStack.lastIndexOf(direction);
+        if (index !== -1) facingStack.splice(index, 1);
+    }
+
+    // --------------------------------------------------------------- combat
+    const spear = document.createElement("div");
+    spear.className = "spear";
+    gameAreaElement.appendChild(spear);
+    let spearTimer = 0;
+
+    const SPEAR_POSE = {
+        up: (p, w, h) => [p.centerX - w / 2, p.y - h + 30, -30],
+        down: (p, w, h) => [p.centerX - w / 2, p.y + p.height - 30, 150],
+        left: (p, w, h) => [p.x - w + 30, p.centerY - h / 2, 250],
+        right: (p, w, h) => [p.x + p.width - 30, p.centerY - h / 2, 45],
+    };
+
+    function showSpear() {
+        const [x, y, rotation] = SPEAR_POSE[player.facing](player, 70, 90);
+        spear.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0) rotate(${rotation}deg)`;
+        spear.classList.add("is-active");
+        spearTimer = 120;
+    }
+
+    function meleeAttack() {
+        if (!player.canAttack()) return;
+        player.beginAttack();
+        Sfx.play("slash");
+        showSpear();
+
+        const box = player.meleeBox();
+        for (const enemy of enemies) {
+            if (!enemy.alive || !overlaps(box, enemy)) continue;
+            if (enemy.takeDamage(player.attack)) killEnemy(enemy);
+        }
+    }
+
+    function castFireball() {
+        if (!player.canCast()) return;
+        if (!player.spendMana(CONFIG.fireball.manaCost)) return;
+        player.beginCast();
+        Sfx.play("fireball");
+        fireballs.push(new Fireball(player, bounds));
+    }
+
+    function killEnemy(enemy) {
+        if (!enemy.alive) return;
+        Sfx.play("kill");
+        state.kills++;
+        player.score += enemy.variant.score;
+        player.heal(enemy.variant.lifeReward, enemy.variant.manaReward);
+        if (enemy.variantName === "enemySpecial") state.bossSpawned = false;
+        enemy.destroy();
+    }
+
+    function spawnEnemy(variantName) {
+        const enemy = new Enemy(variantName, bounds);
+        enemy.placeAwayFrom(player, fieldObjects);
+        enemies.push(enemy);
+        return enemy;
+    }
+
+    // ------------------------------------------------------------------ hud
+    const lastHud = { health: -1, mana: -1, score: -1, kills: -1, time: -1, low: null };
+
+    function updateHud() {
+        const health = Math.round(player.life);
+        if (health !== lastHud.health) {
+            hud.health.style.width = `${(health / player.maxLife) * 100}%`;
+            hud.healthValue.textContent = health;
+            lastHud.health = health;
+
+            const low = health <= 25 && !state.gameOver;
+            if (low !== lastHud.low) {
+                vignette.classList.toggle("is-active", low);
+                lastHud.low = low;
+            }
+        }
+
+        const mana = Math.round(player.mana);
+        if (mana !== lastHud.mana) {
+            hud.mana.style.width = `${(mana / player.maxMana) * 100}%`;
+            hud.manaValue.textContent = mana;
+            lastHud.mana = mana;
+        }
+
+        if (player.score !== lastHud.score) {
+            hud.score.textContent = player.score;
+            lastHud.score = player.score;
+        }
+
+        if (state.kills !== lastHud.kills) {
+            hud.kills.textContent = state.kills;
+            lastHud.kills = state.kills;
+        }
+
+        const seconds = Math.floor(state.elapsed / 1000);
+        if (seconds !== lastHud.time) {
+            hud.time.textContent = formatTime(seconds);
+            lastHud.time = seconds;
+        }
+
+        player.syncBars();
+    }
+
+    function formatTime(totalSeconds) {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    // -------------------------------------------------------------- overlay
+    function setPaused(paused) {
+        if (state.gameOver || state.paused === paused) return;
+        state.paused = paused;
+        if (paused) {
+            releaseAll();
+            Sfx.stop("music");
+            showOverlay("Paused", [], [{ label: "Resume", action: () => setPaused(false) }], "paused");
+        } else {
+            hideOverlay();
+            if (audioUnlocked) Sfx.loop("music");
+            lastFrame = performance.now();
+            accumulator = 0;
+        }
+    }
+
+    function showOverlay(title, stats, actions, variant) {
+        overlayTitle.textContent = title;
+        overlayStats.replaceChildren();
+        for (const stat of stats) {
+            const row = document.createElement("div");
+            row.className = "overlay-stat";
+            const label = document.createElement("span");
+            label.className = "overlay-stat-label";
+            label.textContent = stat.label;
+            const value = document.createElement("strong");
+            value.className = "overlay-stat-value";
+            value.textContent = stat.value;
+            row.append(label, value);
+            overlayStats.appendChild(row);
+        }
+        overlayActions.replaceChildren();
+        for (const action of actions) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "overlay-action popping";
+            button.textContent = action.label;
+            button.addEventListener("click", action.action);
+            overlayActions.appendChild(button);
+        }
+        overlay.dataset.variant = variant;
+        overlay.classList.add("is-visible");
+        overlay.setAttribute("aria-hidden", "false");
+        const first = overlayActions.querySelector("button");
+        if (first) first.focus();
+    }
+
+    function hideOverlay() {
+        overlay.classList.remove("is-visible");
+        overlay.setAttribute("aria-hidden", "true");
+    }
+
+    function endGame() {
+        state.gameOver = true;
+        state.running = false;
+        player.gameOver = true;
+        releaseAll();
+        vignette.classList.remove("is-active");
+
+        Sfx.stop("music");
+        Sfx.play("dead");
+        Sfx.play("gameOver");
+        player.element.classList.add("is-dead");
+
+        showOverlay("You Fell", [
+            { label: "Enemies defeated", value: state.kills },
+            { label: "Total score", value: player.score },
+            { label: "Time survived", value: formatTime(Math.floor(state.elapsed / 1000)) },
+        ], [
+            { label: "Restart", action: () => window.location.reload() },
+            { label: "Exit", action: () => { window.location.href = "../index.html"; } },
+        ], "gameover");
+    }
+
+    // ------------------------------------------------------------ simulation
+    function step(dt, dtMs) {
+        state.elapsed += dtMs;
+
+        // --- timed events, driven off simulated time rather than setInterval
+        if (state.elapsed >= state.nextManaTick) {
+            state.nextManaTick += CONFIG.player.manaRegenInterval;
+            player.regenMana(CONFIG.player.manaRegen);
+        }
+        if (state.elapsed >= state.nextSpawn) {
+            state.nextSpawn += CONFIG.spawn.interval;
+            if (!state.bossSpawned || enemies.length < CONFIG.spawn.softCap) {
+                spawnEnemy("enemy");
+                if (enemies.length >= 4 && !state.bossSpawned) {
+                    state.bossSpawned = true;
+                    spawnEnemy("enemySpecial");
+                }
+            }
+        }
+        if (state.elapsed >= state.nextBoss) {
+            state.nextBoss += CONFIG.spawn.bossInterval;
+            state.bossSpawned = true;
+            spawnEnemy("enemySpecial");
+        }
+
+        // --- movement
+        player.update(dt, input);
+        for (const enemy of enemies) enemy.chase(player, dt);
+        for (const fireball of fireballs) fireball.update(dt);
+
+        // --- scenery blocks both the player and the enemies
+        for (const object of fieldObjects) {
+            resolve(player, object);
+            for (const enemy of enemies) resolve(enemy, object);
+        }
+
+        // --- enemy contact damage
+        for (const enemy of enemies) {
+            const damage = enemy.strike(player);
+            if (!damage) continue;
+            Sfx.play("enemySlash");
+            if (player.takeDamage(damage)) {
+                endGame();
+                return;
+            }
+        }
+
+        // --- projectiles. A fireball dies on its first hit, so it cannot chain.
+        for (const fireball of fireballs) {
+            if (!fireball.alive) continue;
+            for (const object of fieldObjects) {
+                if (object.blocksProjectiles && overlaps(fireball, object)) {
+                    fireball.explode();
+                    break;
+                }
+            }
+            if (!fireball.alive) continue;
+            for (const enemy of enemies) {
+                if (!enemy.alive || !overlaps(fireball, enemy)) continue;
+                fireball.explode();
+                if (enemy.takeDamage(fireball.attack)) killEnemy(enemy);
+                break;
+            }
+        }
+
+        // --- single sweep of the dead, instead of splicing mid-iteration
+        compact(enemies);
+        compact(fireballs);
+
+        depthSort(player);
+        for (const enemy of enemies) depthSort(enemy);
+
+        if (spearTimer > 0) {
+            spearTimer -= dtMs;
+            if (spearTimer <= 0) spear.classList.remove("is-active");
+        }
+    }
+
+    /**
+     * Taller sprites should overlap the ones behind them. Bucketing y keeps this
+     * to a handful of style writes per second instead of one per frame.
+     */
+    function depthSort(entity) {
+        const layer = 2 + Math.min(Math.round(entity.y + entity.height) >> 3, 498);
+        if (layer !== entity._layer) {
+            entity.element.style.zIndex = String(layer);
+            entity._layer = layer;
+        }
+    }
+
+    /** Remove dead entries in place; cheaper than repeated splice() calls. */
+    function compact(list) {
+        let write = 0;
+        for (let read = 0; read < list.length; read++) {
+            if (list[read].alive) list[write++] = list[read];
+        }
+        list.length = write;
+    }
+
+    // --------------------------------------------------------------- loop
+    let lastFrame = performance.now();
+    let accumulator = 0;
+    const stepMs = CONFIG.step;
+    const stepSeconds = stepMs / 1000;
+
+    function frame(now) {
+        window.requestAnimationFrame(frame);
+        if (!state.running || state.paused) {
+            lastFrame = now;
+            return;
+        }
+
+        // Clamp so returning from a background tab does not fast-forward the run.
+        accumulator += Math.min(now - lastFrame, CONFIG.maxFrameTime);
+        lastFrame = now;
+
+        while (accumulator >= stepMs) {
+            accumulator -= stepMs;
+            step(stepSeconds, stepMs);
+            if (!state.running) break;
+        }
+        updateHud();
+    }
+
+    window.requestAnimationFrame(frame);
+    updateHud();
+
+    // ------------------------------------------------------------- resize
+    // Re-lay out the arena rather than reloading and throwing away the run.
+    let resizeTimer = 0;
+    window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            measureBounds();
+            layoutField();
+            player.x = clamp(player.x, 0, bounds.width - player.width);
+            player.y = clamp(player.y, 0, bounds.height - player.height);
+            player.render();
+            for (const enemy of enemies) {
+                enemy.x = clamp(enemy.x, 0, bounds.width - enemy.width);
+                enemy.y = clamp(enemy.y, 0, bounds.height - enemy.height);
+                enemy.render();
+            }
+        }, 150);
+    });
+
+    // --------------------------------------------------- asset warm-up
+    // Walk cycles are CSS background-image keyframes, so the browser only fetches
+    // each frame the first time it is displayed - that is the source of the
+    // "animation stutter" in the README. Warm them after first paint.
+    window.addEventListener("load", () => {
+        const warm = [];
+        for (const direction of ["moveUp", "moveDown", "moveLeft", "moveRight"]) {
+            for (let i = 1; i <= 9; i++) {
+                warm.push(`../images/animations/character/${direction}/${i}.png`);
+            }
+        }
+        warm.push(
+            "../images/skelly_up.png", "../images/skelly_left.png",
+            "../images/skelly_right.png", "../images/explosion.png",
+        );
+        for (const src of warm) new Image().src = src;
+    }, { once: true });
+})();

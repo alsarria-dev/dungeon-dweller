@@ -1,50 +1,46 @@
-let audio_intro = document.querySelector("#intro_audio")
-let audio_box = document.querySelector("#openBoxAudio")
+/** Dungeon Dweller - main menu. */
+(() => {
+    "use strict";
 
-audio_intro.loop = true;
+    const introAudio = document.querySelector("#intro_audio");
+    const boxAudio = document.querySelector("#openBoxAudio");
+    const menu = document.querySelector("#options");
+    const instructionsButton = document.querySelector("#instructions");
+    const panel = document.querySelector("#instructions-panel");
+    const closeButton = document.querySelector("#closeInstructions");
+    const startLink = document.querySelector("#startGame");
 
-window.addEventListener("mouseover", (keyEvent) => {
-        audio_intro.play()
-});
+    function play(track) {
+        if (!track) return;
+        track.currentTime = 0;
+        // Rejected until the browser has seen a user gesture; that is expected.
+        const played = track.play();
+        if (played) played.catch(() => { });
+    }
 
+    // Browsers block autoplay until the first real interaction, so listen once
+    // rather than re-calling play() on every mouseover as the old build did.
+    const startMusic = () => {
+        introAudio.loop = true;
+        const played = introAudio.play();
+        if (played) played.catch(() => { });
+    };
+    document.addEventListener("pointerdown", startMusic, { once: true });
+    document.addEventListener("keydown", startMusic, { once: true });
 
+    function setPanelOpen(open) {
+        panel.hidden = !open;
+        menu.hidden = open;
+        instructionsButton.setAttribute("aria-expanded", String(open));
+        play(boxAudio);
+        (open ? closeButton : instructionsButton).focus();
+    }
 
-const instructions = document.createElement("div");
-const menu = document.querySelector("#options")
-instructions.classList.add("options1");
-instructions.style.visibility = 'hidden';
-const explanation1 = document.createElement('div');
-explanation1.classList.add("explanation");
-explanation1.innerHTML = "Attention Dungeon Dweller! The rules are simple: Survive as long as possible. The skellies are not your friends, I repeat, NOT YOUR FRIENDS. If you come across with them, give them some and kill them QUICK";
-const explanation2 = document.createElement('div');
-explanation2.classList.add("explanation");
-explanation2.innerHTML = "W, S, D, A are your best options to move around, while K and L will deliver some good old fashioned democracy to your foes";
-const explanation3 = document.createElement('div');
-explanation3.classList.add("explanation");
-explanation3.innerHTML = "PRO TIP: if you struggle with your resolution while in the game, try to zoom out a bit (control - or command -)";
-instructions.appendChild(explanation1);
-instructions.appendChild(explanation2);
-instructions.appendChild(explanation3);
-document.querySelector("body").appendChild(instructions);
+    instructionsButton.addEventListener("click", () => setPanelOpen(true));
+    closeButton.addEventListener("click", () => setPanelOpen(false));
+    startLink.addEventListener("click", () => play(boxAudio));
 
-document.querySelector("#instructions").addEventListener("click", () => {
-        menu.style.visibility = 'hidden';
-        instructions.style.visibility = 'visible';
-        audio_box.play();
-
-});
-
-document.querySelector("#startGame").addEventListener("click", () => {
-        audio_box.play();
-});
-
-document.querySelector(".options1").addEventListener("click", () => {
-        menu.style.visibility = 'visible';
-        instructions.style.visibility = 'hidden';
-        audio_box.play();
-});
-
-window.addEventListener('resize', function () {
-        "use strict";
-        window.location.reload();
-});
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !panel.hidden) setPanelOpen(false);
+    });
+})();

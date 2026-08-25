@@ -1,6 +1,18 @@
 @font-face {
     font-family: 'medieval';
-    src: url("./fonts/MedievalSharp-Regular.ttf");
+    src: url("./fonts/MedievalSharp-Regular.ttf") format("truetype");
+    font-display: swap;
+}
+
+:root {
+    --hp: #d2373c;
+    --hp-glow: #ff6b5e;
+    --mp: #3f6fe0;
+    --mp-glow: #6fa8ff;
+    --gold: #e8c87a;
+    --ink: #f3e6cd;
+    --panel: rgba(14, 11, 9, 0.72);
+    --panel-edge: rgba(232, 200, 122, 0.35);
 }
 
 * {
@@ -11,611 +23,668 @@
 
 body {
     display: flex;
-    flex-direction: row;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-image: url("https://i.pinimg.com/736x/ce/3e/aa/ce3eaae4075199a4b26401742612cb72.jpg");
+    overflow: hidden;
+    background: radial-gradient(ellipse at 50% 35%, #2a2018 0%, #140f0b 55%, #070505 100%);
+    color: var(--ink);
+    font-family: medieval, "Palatino Linotype", Georgia, serif;
 }
 
 #container {
     height: 90vh;
     width: 90vw;
     display: flex;
-    flex-direction: row;
     justify-content: center;
     align-items: center;
-    background-color: black;
-    border-radius: 1%;
+    background-color: #000;
+    border-radius: 10px;
+    box-shadow: 0 0 0 2px rgba(232, 200, 122, 0.18), 0 24px 70px rgba(0, 0, 0, 0.75);
 }
 
 #game-area {
     height: 89vh;
     width: 89vw;
     position: relative;
+    overflow: hidden;
     background-image: url("../images/stoneFloor.jpg");
-    border-radius: 1%;
+    border-radius: 8px;
     z-index: 2;
 }
 
+/* Every moving entity is positioned with `transform` from the arena's origin so
+   the browser can composite it without a layout pass. */
+#player,
+.enemy,
+.enemySpecial,
+.fireBall,
+.spear,
+.rock,
+.rock1,
+.lake_surroundings,
+.lake_surroundings1 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    will-change: transform;
+}
+
+/* ------------------------------------------------------------------ player */
 #player {
     height: 100px;
     width: 50px;
-    position: absolute;
     display: flex;
-    flex-direction: column;
     justify-content: center;
-    align-items: center;
-    padding-left: 10px;
-    margin-left: -10px;
+    align-items: flex-end;
     z-index: 2;
 }
 
-.spear {
-    height: 90px;
-    width: 70px;
-    position: absolute;
-    z-index: 1;
-    background-image: url("../images/spear.png");
-    background-size: 100% 100%;
+#player.is-dead {
+    filter: grayscale(1) brightness(0.5);
 }
 
 .icon {
     height: 90px;
     width: 40px;
-    background-image: url("../images/character_down.png");
     background-size: 100% 100%;
-    text-align: center;
+    background-repeat: no-repeat;
+}
+
+/* Facing and walk state are driven by attributes/classes, not by rewriting
+   inline styles on every animation frame. */
+.icon[data-facing="down"] {
+    background-image: url("../images/character_down.png");
+}
+
+.icon[data-facing="up"] {
+    background-image: url("../images/character_up.png");
+}
+
+.icon[data-facing="left"] {
+    background-image: url("../images/character_left.png");
+}
+
+.icon[data-facing="right"] {
+    background-image: url("../images/character_right.png");
+}
+
+.icon.walking[data-facing="down"] {
+    animation: characterMoveDown 500ms step-end infinite;
+}
+
+.icon.walking[data-facing="up"] {
+    animation: characterMoveUp 500ms step-end infinite;
+}
+
+.icon.walking[data-facing="left"] {
+    animation: characterMoveLeft 500ms step-end infinite;
+}
+
+.icon.walking[data-facing="right"] {
+    animation: characterMoveRight 500ms step-end infinite;
+}
+
+.player-bars {
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    width: 46px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.health-bar,
+.mana-bar {
+    height: 4px;
+    width: 100%;
+    border-radius: 2px;
+    transition: width 120ms linear;
 }
 
 .health-bar {
-    height: 10px;
-    background-color: red;
-    width: 100%;
+    background-color: var(--hp);
 }
 
 .mana-bar {
-    height: 10px;
-    background-color: blue;
-    width: 100%;
+    background-color: var(--mp);
+}
+
+/* ------------------------------------------------------------------ enemies */
+.enemy,
+.enemySpecial {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    z-index: 2;
 }
 
 .enemy {
     height: 120px;
     width: 70px;
-    position: absolute;
-    z-index: 2;
-}
-
-.iconEnemy {
-    height: 110px;
-    width: 100%;
-    background-image: url("../images/skelly_down.png");
-    background-size: 100% 100%;
-}
-
-.health-barEnemy {
-    height: 10px;
-    background-color: red;
-    width: 100%;
 }
 
 .enemySpecial {
     height: 220px;
     width: 140px;
-    position: absolute;
-    z-index: 2;
+}
+
+.iconEnemy,
+.iconEnemySpecial {
+    width: 100%;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+.iconEnemy {
+    height: 110px;
 }
 
 .iconEnemySpecial {
     height: 200px;
-    width: 100%;
+    filter: drop-shadow(0 0 12px rgba(210, 55, 60, 0.55)) saturate(1.3);
+}
+
+.iconEnemy[data-facing="down"],
+.iconEnemySpecial[data-facing="down"] {
     background-image: url("../images/skelly_down.png");
-    background-size: 100% 100%;
+}
+
+.iconEnemy[data-facing="up"],
+.iconEnemySpecial[data-facing="up"] {
+    background-image: url("../images/skelly_up.png");
+}
+
+.iconEnemy[data-facing="left"],
+.iconEnemySpecial[data-facing="left"] {
+    background-image: url("../images/skelly_left.png");
+}
+
+.iconEnemy[data-facing="right"],
+.iconEnemySpecial[data-facing="right"] {
+    background-image: url("../images/skelly_right.png");
+}
+
+.enemy-bar-track {
+    width: 100%;
+    height: 6px;
+    margin-bottom: 2px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+.enemySpecial .enemy-bar-track {
+    height: 10px;
+}
+
+.health-barEnemy,
+.health-barEnemySpecial {
+    height: 100%;
+    width: 100%;
+    background-color: var(--hp);
+    transition: width 120ms linear;
 }
 
 .health-barEnemySpecial {
-    height: 20px;
-    background-color: red;
-    width: 100%;
+    background: linear-gradient(90deg, #8a1f22, var(--hp-glow));
 }
 
+/* ------------------------------------------------------------- projectiles */
 .fireBall {
     height: 60px;
     width: 100px;
-    position: absolute;
     background-image: url("../images/fireball.png");
+    background-size: cover;
+    z-index: 600;
+    filter: drop-shadow(0 0 10px rgba(255, 140, 40, 0.7));
+}
+
+.fireBall.exploding {
+    background-image: url("../images/explosion.png");
+    background-size: 100% 100%;
+    height: 100px;
+    width: 100px;
+    animation: explode 300ms ease-out forwards;
+}
+
+.spear {
+    height: 90px;
+    width: 70px;
+    background-image: url("../images/spear.png");
+    background-size: 100% 100%;
+    z-index: 700;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.spear.is-active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ------------------------------------------------------------------ scenery */
+.rock,
+.rock1 {
+    background-image: url("../images/rock.png");
     background-size: cover;
 }
 
 .rock {
     height: 140px;
     width: 140px;
-    background-image: url("../images/rock.png");
-    position: absolute;
-    background-size: cover;
 }
 
 .rock1 {
     height: 70px;
     width: 70px;
-    background-image: url("../images/rock.png");
-    position: absolute;
-    background-size: cover;
 }
 
-
-.lake_surroundings {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100px;
-    width: 100px;
-    position: absolute;
-    background-image: url("https://opengameart.org/sites/default/files/styles/medium/public/DirtAndBark_T.jpg");
-    background-size: cover;
-    border-radius: 5%;
-}
-
+.lake_surroundings,
 .lake_surroundings1 {
     display: flex;
     justify-content: center;
     align-items: center;
+    border-radius: 8px;
+    /* Was a remote opengameart.org image; a gradient renders the same dirt ring
+       with no third-party request. */
+    background:
+        radial-gradient(circle at 30% 25%, #6b5433, #3d2f1c 70%),
+        #3d2f1c;
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6);
+}
+
+.lake_surroundings {
+    height: 100px;
+    width: 100px;
+}
+
+.lake_surroundings1 {
     height: 200px;
     width: 200px;
-    position: absolute;
-    background-image: url("https://opengameart.org/sites/default/files/styles/medium/public/DirtAndBark_T.jpg");
+}
+
+.lake,
+.lake1 {
+    position: relative;
+    background-image: url("../images/lava.jpg");
     background-size: cover;
-    border-radius: 5%;
+    border-radius: 6px;
+    box-shadow: 0 0 18px rgba(255, 110, 30, 0.45);
 }
 
 .lake {
     height: 90px;
     width: 90px;
-    position: absolute;
-    background-image: url("../images/lava.jpg");
-    background-size: cover;
-    border-radius: 5%;
 }
 
 .lake1 {
     height: 190px;
     width: 190px;
-    position: absolute;
-    background-image: url("../images/lava.jpg");
-    background-size: cover;
-    border-radius: 5%;
 }
 
-.tree {
-    height: 150px;
-    width: 105px;
-    background-image: url("../images/tree.png");
-    background-size: cover;
+/* ---------------------------------------------------------------------- HUD */
+/* Entities depth-sort themselves into z-index 2..~500, so the UI sits well
+   above that band rather than being overlapped by a sprite near the bottom. */
+#hud {
     position: absolute;
+    inset: 0 0 auto 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+    z-index: 2000;
+    pointer-events: none;
 }
 
-.banner {
-    width: 55vw;
-    height: 70vh;
-    background-image: url("../images/endGameBanner.png");
-    background-size: 100% 100%;
-    font-family: medieval;
+.hud-panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 10px;
+    padding: 10px 14px;
+    backdrop-filter: blur(3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.hud-vitals {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 5vh;
-    position: absolute;
-    top: 8vh;
-    left: 15vw;
-    padding-left: 8vw;
-    padding-right: 8vw;
-    z-index: 3;
+    gap: 8px;
+    min-width: 260px;
 }
 
-.bannerWrapper {
-    font-size: 7vh;
-    font-weight: bold;
+.hud-meter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hud-meter-label {
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    width: 2.2em;
+}
+
+.hud-meter-value {
+    font-size: 0.9rem;
+    width: 2.6em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.hud-track {
+    position: relative;
+    flex: 1;
+    height: 14px;
+    border-radius: 7px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+}
+
+.hud-fill {
+    height: 100%;
+    width: 100%;
+    border-radius: 6px;
+    transition: width 160ms ease-out;
+}
+
+.hud-fill-health {
+    background: linear-gradient(90deg, #8a1f22, var(--hp) 60%, var(--hp-glow));
+}
+
+.hud-fill-mana {
+    background: linear-gradient(90deg, #22397a, var(--mp) 60%, var(--mp-glow));
+}
+
+.hud-stats {
+    display: flex;
+    gap: 22px;
+}
+
+.hud-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.hud-stat-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.85;
+}
+
+.hud-stat-value {
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+#start-hint {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    z-index: 1900;
+    pointer-events: none;
+    transition: opacity 400ms ease;
+}
+
+#start-hint.is-hidden {
+    opacity: 0;
+}
+
+#start-hint kbd {
+    font-family: inherit;
+    background: rgba(232, 200, 122, 0.16);
+    border: 1px solid var(--panel-edge);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--gold);
+}
+
+/* Pulses only while the player is badly hurt; otherwise it costs nothing. */
+#low-health {
+    position: absolute;
+    inset: 0;
+    z-index: 1500;
+    pointer-events: none;
+    opacity: 0;
+    box-shadow: inset 0 0 140px 40px rgba(180, 20, 20, 0.75);
+    transition: opacity 300ms ease;
+}
+
+#low-health.is-active {
+    opacity: 1;
+    animation: lowHealthPulse 1.4s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------ overlay */
+#overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(6, 4, 3, 0.72);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 220ms ease;
+}
+
+#overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* A stretched background image cannot contain arbitrary content, so the card
+   is drawn in CSS - it stays legible at any size and drops a 100KB request. */
+#overlay-card {
+    width: min(480px, 82vw);
+    padding: clamp(28px, 5vh, 44px) clamp(28px, 5vw, 52px);
     text-align: center;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    gap: 18px;
     align-items: center;
-    justify-content: space-around;
-    font-family: medieval;
-    color: black
+    color: var(--ink);
+    background:
+        linear-gradient(180deg, rgba(46, 34, 22, 0.96), rgba(18, 13, 9, 0.97));
+    border: 1px solid var(--panel-edge);
+    border-radius: 14px;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(232, 200, 122, 0.18),
+        0 26px 60px rgba(0, 0, 0, 0.7);
 }
 
-.bannerInfo {
-    font-size: 3vh;
-    color: black;
-    padding: 20px;
+#overlay-title {
+    font-size: clamp(1.8rem, 5vh, 3rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--gold);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7);
 }
 
-.wrapper {
+#overlay[data-variant="gameover"] #overlay-title {
+    color: var(--hp-glow);
+}
+
+#overlay-stats {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 2px;
+    width: 100%;
 }
 
-.characterMoveDown {
-    animation: characterMoveDown 500ms infinite;
+#overlay-stats:empty {
+    display: none;
 }
 
-.characterMoveUp {
-    animation: characterMoveUp 500ms infinite;
+.overlay-stat {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 1.05rem;
+    padding: 6px 2px;
+    border-bottom: 1px solid rgba(232, 200, 122, 0.16);
 }
 
-.characterMoveLeft {
-    animation: characterMoveLeft 500ms infinite;
+.overlay-stat-label {
+    opacity: 0.8;
 }
 
-.characterMoveRight {
-    animation: characterMoveRight 500ms infinite;
+.overlay-stat-value {
+    font-variant-numeric: tabular-nums;
+    color: var(--gold);
 }
 
-.popping:hover {
+#overlay-actions {
+    display: flex;
+    gap: 24px;
+    margin-top: 6px;
+}
+
+.overlay-action {
+    font-family: inherit;
+    font-size: clamp(1.1rem, 3vh, 1.6rem);
+    font-weight: 700;
+    color: var(--ink);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+.overlay-action:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+}
+
+.popping:hover,
+.popping:focus-visible {
     animation: popping 500ms infinite;
-    color: white;
 }
 
+/* --------------------------------------------------------------- keyframes */
 @keyframes popping {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-7.5px); }
+    50% { transform: translateY(-15px); }
+    75% { transform: translateY(-7.5px); }
+}
 
-    0% {
-        transform: translateY(0px);
-    }
+@keyframes explode {
+    0% { opacity: 1; transform: scale(0.7); }
+    40% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0; transform: scale(1.3); }
+}
 
-    25% {
-        transform: translateY(-7.5px);
-    }
-
-    50% {
-        transform: translateY(-15px);
-    }
-
-    75% {
-        transform: translateY(-7.5px);
-    }
-
-    100% {
-        transform: translateY(0px);
-    }
-
+@keyframes lowHealthPulse {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
 }
 
 @keyframes characterMoveDown {
-    0% {
-        background-image: url("../images/animations/character/moveDown/1.png");
-    }
-
-    11.11% {
-        background-image: url("../images/animations/character/moveDown/2.png");
-    }
-
-    22.22% {
-        background-image: url("../images/animations/character/moveDown/3.png");
-    }
-
-    33.33% {
-        background-image: url("../images/animations/character/moveDown/4.png");
-    }
-
-    44.44% {
-        background-image: url("../images/animations/character/moveDown/5.png");
-    }
-
-    55.55% {
-        background-image: url("../images/animations/character/moveDown/6.png");
-    }
-
-    66.66% {
-        background-image: url("../images/animations/character/moveDown/7.png");
-    }
-
-    77.77% {
-        background-image: url("../images/animations/character/moveDown/8.png");
-    }
-
-    88.88% {
-        background-image: url("../images/animations/character/moveDown/9.png");
-    }
-
-    100% {
-        background-image: url("../images/animations/character/moveDown/1.png");
-    }
+    0% { background-image: url("../images/animations/character/moveDown/1.png"); }
+    11.11% { background-image: url("../images/animations/character/moveDown/2.png"); }
+    22.22% { background-image: url("../images/animations/character/moveDown/3.png"); }
+    33.33% { background-image: url("../images/animations/character/moveDown/4.png"); }
+    44.44% { background-image: url("../images/animations/character/moveDown/5.png"); }
+    55.55% { background-image: url("../images/animations/character/moveDown/6.png"); }
+    66.66% { background-image: url("../images/animations/character/moveDown/7.png"); }
+    77.77% { background-image: url("../images/animations/character/moveDown/8.png"); }
+    88.88% { background-image: url("../images/animations/character/moveDown/9.png"); }
+    100% { background-image: url("../images/animations/character/moveDown/1.png"); }
 }
 
 @keyframes characterMoveUp {
-    0% {
-        background-image: url("../images/animations/character/moveUp/1.png");
-    }
-
-    11.11% {
-        background-image: url("../images/animations/character/moveUp/2.png");
-    }
-
-    22.22% {
-        background-image: url("../images/animations/character/moveUp/3.png");
-    }
-
-    33.33% {
-        background-image: url("../images/animations/character/moveUp/4.png");
-    }
-
-    44.44% {
-        background-image: url("../images/animations/character/moveUp/5.png");
-    }
-
-    55.55% {
-        background-image: url("../images/animations/character/moveUp/6.png");
-    }
-
-    66.66% {
-        background-image: url("../images/animations/character/moveUp/7.png");
-    }
-
-    77.77% {
-        background-image: url("../images/animations/character/moveUp/8.png");
-    }
-
-    88.88% {
-        background-image: url("../images/animations/character/moveUp/9.png");
-    }
-
-    100% {
-        background-image: url("../images/animations/character/moveUp/1.png");
-    }
+    0% { background-image: url("../images/animations/character/moveUp/1.png"); }
+    11.11% { background-image: url("../images/animations/character/moveUp/2.png"); }
+    22.22% { background-image: url("../images/animations/character/moveUp/3.png"); }
+    33.33% { background-image: url("../images/animations/character/moveUp/4.png"); }
+    44.44% { background-image: url("../images/animations/character/moveUp/5.png"); }
+    55.55% { background-image: url("../images/animations/character/moveUp/6.png"); }
+    66.66% { background-image: url("../images/animations/character/moveUp/7.png"); }
+    77.77% { background-image: url("../images/animations/character/moveUp/8.png"); }
+    88.88% { background-image: url("../images/animations/character/moveUp/9.png"); }
+    100% { background-image: url("../images/animations/character/moveUp/1.png"); }
 }
 
 @keyframes characterMoveLeft {
-    0% {
-        background-image: url("../images/animations/character/moveLeft/1.png");
-    }
-
-    11.11% {
-        background-image: url("../images/animations/character/moveLeft/2.png");
-    }
-
-    22.22% {
-        background-image: url("../images/animations/character/moveLeft/3.png");
-    }
-
-    33.33% {
-        background-image: url("../images/animations/character/moveLeft/4.png");
-    }
-
-    44.44% {
-        background-image: url("../images/animations/character/moveLeft/5.png");
-    }
-
-    55.55% {
-        background-image: url("../images/animations/character/moveLeft/6.png");
-    }
-
-    66.66% {
-        background-image: url("../images/animations/character/moveLeft/7.png");
-    }
-
-    77.77% {
-        background-image: url("../images/animations/character/moveLeft/8.png");
-    }
-
-    88.88% {
-        background-image: url("../images/animations/character/moveLeft/9.png");
-    }
-
-    100% {
-        background-image: url("../images/animations/character/moveLeft/1.png");
-    }
+    0% { background-image: url("../images/animations/character/moveLeft/1.png"); }
+    11.11% { background-image: url("../images/animations/character/moveLeft/2.png"); }
+    22.22% { background-image: url("../images/animations/character/moveLeft/3.png"); }
+    33.33% { background-image: url("../images/animations/character/moveLeft/4.png"); }
+    44.44% { background-image: url("../images/animations/character/moveLeft/5.png"); }
+    55.55% { background-image: url("../images/animations/character/moveLeft/6.png"); }
+    66.66% { background-image: url("../images/animations/character/moveLeft/7.png"); }
+    77.77% { background-image: url("../images/animations/character/moveLeft/8.png"); }
+    88.88% { background-image: url("../images/animations/character/moveLeft/9.png"); }
+    100% { background-image: url("../images/animations/character/moveLeft/1.png"); }
 }
 
 @keyframes characterMoveRight {
-    0% {
-        background-image: url("../images/animations/character/moveRight/1.png");
+    0% { background-image: url("../images/animations/character/moveRight/1.png"); }
+    11.11% { background-image: url("../images/animations/character/moveRight/2.png"); }
+    22.22% { background-image: url("../images/animations/character/moveRight/3.png"); }
+    33.33% { background-image: url("../images/animations/character/moveRight/4.png"); }
+    44.44% { background-image: url("../images/animations/character/moveRight/5.png"); }
+    55.55% { background-image: url("../images/animations/character/moveRight/6.png"); }
+    66.66% { background-image: url("../images/animations/character/moveRight/7.png"); }
+    77.77% { background-image: url("../images/animations/character/moveRight/8.png"); }
+    88.88% { background-image: url("../images/animations/character/moveRight/9.png"); }
+    100% { background-image: url("../images/animations/character/moveRight/1.png"); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .popping:hover,
+    .popping:focus-visible,
+    #low-health.is-active {
+        animation: none;
     }
 
-    11.11% {
-        background-image: url("../images/animations/character/moveRight/2.png");
-    }
-
-    22.22% {
-        background-image: url("../images/animations/character/moveRight/3.png");
-    }
-
-    33.33% {
-        background-image: url("../images/animations/character/moveRight/4.png");
-    }
-
-    44.44% {
-        background-image: url("../images/animations/character/moveRight/5.png");
-    }
-
-    55.55% {
-        background-image: url("../images/animations/character/moveRight/6.png");
-    }
-
-    66.66% {
-        background-image: url("../images/animations/character/moveRight/7.png");
-    }
-
-    77.77% {
-        background-image: url("../images/animations/character/moveRight/8.png");
-    }
-
-    88.88% {
-        background-image: url("../images/animations/character/moveRight/9.png");
-    }
-
-    100% {
-        background-image: url("../images/animations/character/moveRight/1.png");
+    .hud-fill,
+    .health-bar,
+    .mana-bar,
+    .health-barEnemy,
+    .health-barEnemySpecial {
+        transition: none;
     }
 }
 
-@keyframes characterSpellUp {
-    0% {
-        background-image: url("../images/animations/character/spellUp/1.png");
+@media (max-width: 900px) {
+    #hud {
+        flex-direction: column;
+        gap: 10px;
     }
 
-    14.28% {
-        background-image: url("../images/animations/character/spellUp/2.png");
+    .hud-vitals {
+        min-width: 0;
+        width: 100%;
     }
 
-    28.56% {
-        background-image: url("../images/animations/character/spellUp/3.png");
-    }
-
-    42.84% {
-        background-image: url("../images/animations/character/spellUp/4.png");
-    }
-
-    57.12% {
-        background-image: url("../images/animations/character/spellUp/5.png");
-    }
-
-    71.4% {
-        background-image: url("../images/animations/character/spellUp/6.png");
-    }
-
-    85.68% {
-        background-image: url("../images/animations/character/SpellUp/7.png");
-    }
-
-    100% {
-        background-image: url("../images/animations/character/SpellUp/1.png");
-    }
-}
-
-@keyframes characterSpellDown {
-    0% {
-        background-image: url("../images/animations/character/spellDown/1.png");
-    }
-
-    14.28% {
-        background-image: url("../images/animations/character/spellDown/2.png");
-    }
-
-    28.56% {
-        background-image: url("../images/animations/character/spellDown/3.png");
-    }
-
-    42.84% {
-        background-image: url("../images/animations/character/spellDown/4.png");
-    }
-
-    57.12% {
-        background-image: url("../images/animations/character/spellDown/5.png");
-    }
-
-    71.4% {
-        background-image: url("../images/animations/character/spellDown/6.png");
-    }
-
-    85.68% {
-        background-image: url("../images/animations/character/spellDown/7.png");
-    }
-
-    100% {
-        background-image: url("../images/animations/character/spellDown/1.png");
-    }
-}
-
-@keyframes characterSpellLeft {
-    0% {
-        background-image: url("../images/animations/character/spellLeft/1.png");
-    }
-
-    14.28% {
-        background-image: url("../images/animations/character/spellLeft/2.png");
-    }
-
-    28.56% {
-        background-image: url("../images/animations/character/spellLeft/3.png");
-    }
-
-    42.84% {
-        background-image: url("../images/animations/character/spellLeft/4.png");
-    }
-
-    57.12% {
-        background-image: url("../images/animations/character/spellLeft/5.png");
-    }
-
-    71.4% {
-        background-image: url("../images/animations/character/spellLeft/6.png");
-    }
-
-    85.68% {
-        background-image: url("../images/animations/character/spellLeft/7.png");
-    }
-
-    100% {
-        background-image: url("../images/animations/character/spellLeft/1.png");
-    }
-}
-
-@keyframes characterSpellRight {
-    0% {
-        background-image: url("../images/animations/character/spellRight/1.png");
-    }
-
-    14.28% {
-        background-image: url("../images/animations/character/spellRight/2.png");
-    }
-
-    28.56% {
-        background-image: url("../images/animations/character/spellRight/3.png");
-    }
-
-    42.84% {
-        background-image: url("../images/animations/character/spellRight/4.png");
-    }
-
-    57.12% {
-        background-image: url("../images/animations/character/spellRight/5.png");
-    }
-
-    71.4% {
-        background-image: url("../images/animations/character/spellRight/6.png");
-    }
-
-    85.68% {
-        background-image: url("../images/animations/character/spellRight/7.png");
-    }
-
-    100% {
-        background-image: url("../images/animations/character/spellRight/1.png");
-    }
-}
-
-@keyframes characterAttackUp {
-    0% {
-        background-image: url("../images/animations/character/attackUp/1.png");
-    }
-
-    10% {
-        background-image: url("../images/animations/character/attackUp/2.png");
-    }
-
-    20% {
-        background-image: url("../images/animations/character/attackUp/3.png");
-    }
-
-    30% {
-        background-image: url("../images/animations/character/attackUp/4.png");
-    }
-
-    40% {
-        background-image: url("../images/animations/character/attackUp/5.png");
-    }
-
-    80% {
-        background-image: url("../images/animations/character/attackUp/6.png");
-    }
-
-    90% {
-        background-image: url("../images/animations/character/attackUp/7.png");
-    }
-
-    100% {
-        background-image: url("../images/animations/character/attackUp/8.png");
+    #start-hint {
+        font-size: 0.8rem;
     }
 }

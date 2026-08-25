@@ -1,993 +1,501 @@
-// Define player object
-class gamePlayer {
-    constructor(gameAreaElement) {
-        // Define Element
-        this.gameAreaElement = document.querySelector("#game-area");
-        this.element = document.querySelector("#player");
-        // Define Size
-        this.height = this.element.getBoundingClientRect().height;
-        this.width = this.element.getBoundingClientRect().width;
-        // Define Boundaries
-        this.gameAreaHeight = gameAreaElement.getBoundingClientRect().height;
-        this.gameAreaWidth = gameAreaElement.getBoundingClientRect().width;
-        // Define Position
-        this.y = this.gameAreaHeight / 2 - this.height / 2;
-        this.x = this.gameAreaWidth / 2 - this.width / 2;
-        this.element.style.top = `${this.y}px`;
-        this.element.style.left = `${this.x}px`;
-        // Movement Properties
-        this.direction = [false, false, false, false];
-        this.finalDirection = null;
-        this.currentDirection = null;
-        this.velocity = 5;
-        this.distance = null;
-        this.movement = true;
-        // Combat Properties
-        this.life = 100;
-        this.mana = 100;
-        this.attack = 10;
-        this.fireSpell = false;
-        // Game state
-        this.gameOver = false;
-        this.score = 0;
+/**
+ * Dungeon Dweller - entity library.
+ *
+ * Everything is exposed on the single `DD` global so that script.js can pull in
+ * what it needs without either file reaching into the other's variables.
+ */
+const DD = (() => {
+    "use strict";
+
+    // ---------------------------------------------------------------- config
+    // Speeds are px/second so the game plays identically on 60Hz and 144Hz.
+    // Cooldowns and durations are milliseconds.
+    const CONFIG = {
+        step: 1000 / 60,          // fixed simulation step
+        maxFrameTime: 250,        // clamp after tab-out so we never spiral
+        player: {
+            speed: 300,
+            maxLife: 100,
+            maxMana: 100,
+            attack: 10,
+            attackCooldown: 320,
+            castCooldown: 260,
+            meleeReach: 58,
+            manaRegen: 10,
+            manaRegenInterval: 1000,
+        },
+        fireball: { speed: 1200, attack: 25, manaCost: 20, explodeMs: 300 },
+        spawn: { interval: 3500, bossInterval: 25000, softCap: 5, safeRadius: 220, maxTries: 24 },
     };
 
-    move() {
-        // Moving up + game boundaries
-        if (this.direction[0]) {
-            this.element.querySelector(".icon").style.backgroundImage = "url(../images/character_up.png)"
-            if (this.y <= 0) {
-                this.y = 0;
-                this.element.style.top = `${this.y}px`;
-            } else {
-                this.y -= this.velocity;
-                this.element.style.top = `${this.y}px`;
-            }
-            // Moving down + game boundaries
-        } if (this.direction[1]) {
-            this.element.querySelector(".icon").style.backgroundImage = "url(../images/character_down.png)"
-            if (this.y >= (this.gameAreaHeight - this.height)) {
-                this.y = this.gameAreaHeight - this.height;
-                this.element.style.top = `${this.y}px`;
-            } else {
-                this.y += this.velocity;
-                this.element.style.top = `${this.y}px`;
-            }
-            // Moving left + game boundaries
-        } else {
-        } if (this.direction[2]) {
-            this.element.querySelector(".icon").style.backgroundImage = "url(../images/character_left.png)"
-            if (this.x <= 0) {
-                this.x = 0;
-                this.element.style.left = `${this.x}px`;
-            } else {
-                this.x -= this.velocity;
-                this.element.style.left = `${this.x}px`;
-            }
-            // Moving right + game boundaries
-        } if (this.direction[3]) {
-            this.element.querySelector(".icon").style.backgroundImage = "url(../images/character_right.png)"
-            if (this.x >= (this.gameAreaWidth - this.width)) {
-                this.x = this.gameAreaWidth - this.width;
-                this.element.style.left = `${this.x}px`;
-            } else {
-                this.x += this.velocity;
-                this.element.style.left = `${this.x}px`;
-            };
-        };
+    const ENEMY_VARIANTS = {
+        enemy: {
+            className: "enemy", iconClass: "iconEnemy", barClass: "health-barEnemy",
+            maxLife: 100, attack: 5, speed: 200, attackCooldown: 700,
+            score: 10, lifeReward: 30, manaReward: 40,
+        },
+        enemySpecial: {
+            className: "enemySpecial", iconClass: "iconEnemySpecial", barClass: "health-barEnemySpecial",
+            maxLife: 300, attack: 20, speed: 150, attackCooldown: 900,
+            score: 100, lifeReward: 100, manaReward: 100,
+        },
     };
 
-    playerCollission(collisionObject) {
-        if (
-            (
-                // Checks right upper corner of player agains enemy width position
-                (
-                    this.x >= collisionObject.x
-                    && this.x <= collisionObject.x + collisionObject.width
-                )
-                //  Checks left upper corner of player element against enemy width position
-                || (
-                    this.x + this.width <= collisionObject.width + collisionObject.x
-                    && this.x + this.width >= collisionObject.x
-                )
-            )
-            && (
-                // Checks upper left corner of player agains enemy height position
-                (
-                    this.y >= collisionObject.y
-                    && this.y <= collisionObject.y + collisionObject.height
-                )
-                // Checks lower left corner of player agains enemy height position
-                || (
-                    this.y + this.height <= collisionObject.y + collisionObject.height
-                    && this.y + this.height >= collisionObject.y
-                )
-            )
-        ) {
-            let diffX = (this.x + this.width / 2) - (collisionObject.x + collisionObject.width / 2);
-            let diffY = (collisionObject.y + collisionObject.height / 2) - (this.y + this.height / 2);
-            if (diffX < 0) {
-                if (diffY < 0) {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y + collisionObject.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM TOP");
-                    } else {
-                        this.x = collisionObject.x - this.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM RIGHT");
-                    };
-                    return true;
-                } else {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y - this.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM BOTTOM");
-                    } else {
-                        this.x = collisionObject.x - this.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM RIGHT");
-                    };
-                    return true;
-                };
-            } else {
-                if (diffY < 0) {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y + collisionObject.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM TOP");
-                    } else {
-                        this.x = collisionObject.x + collisionObject.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM LEFT");
-                    };
-                    return true;
-                } else {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y - this.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM BOTTOM");
-                    } else {
-                        this.x = collisionObject.x + collisionObject.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM LEFT");
-                    };
-                    return true;
-                };
-            };
-        } else {
-            return false;
-        };
-    };
+    // ------------------------------------------------------------- geometry
+    const clamp = (value, min, max) => (value < min ? min : value > max ? max : value);
 
-    attack1(objectGame) {
-        if (this.playerCollission(objectGame)) {
-            objectGame.life -= this.attack;
-            if (objectGame.life <= 0) {
-                if (objectGame.element.classList[0] === 'enemySpecial') {
-                    this.score += 100;
-                } else {
-                    this.score += 10;
-                };
-                objectGame.element.remove();
-                this.life += 30;
-                this.mana += 40;
-                console.log(`Score is ${this.score}`)
-                if (this.life > 100) {
-                    this.life = 100;
-                };
-                if (this.mana > 100) {
-                    this.mana = 100;
-                };
-                this.element.querySelector(".mana-bar").style.width = `${this.mana}%`
-                this.element.querySelector(".health-bar").style.width = `${this.life}%`
-            };
-            if (objectGame.element.classList[0] === 'enemy') {
-                objectGame.element.querySelector(".health-barEnemy").style.width = `${objectGame.life}%`
-            } else {
-                objectGame.element.querySelector(".health-barEnemySpecial").style.width = `${objectGame.life / 5}%`
-            }
-        };
-    };
-};
-
-class gameEnemy {
-    constructor(gameAreaElement) {
-        // Define Boundaries
-        this.gameAreaElement = document.querySelector("#game-area");
-        this.gameAreaHeight = gameAreaElement.getBoundingClientRect().height;
-        this.gameAreaWidth = gameAreaElement.getBoundingClientRect().width;
-        // Define Position
-        this.x = 0;
-        this.y = 0;
-        this.width = 0;
-        this.height = 0;
-        // Define Boundaries
-        this.gameAreaHeight = gameAreaElement.getBoundingClientRect().height;
-        this.gameAreaWidth = gameAreaElement.getBoundingClientRect().width;
-        // Movement Properties
-        this.direction = [false, false, false, false];
-        this.velocity = 5;
-        this.ChaseRadius = 50000 * 2;
-        // Idle Movement Properties
-        this.idleVelocity = this.velocity / 2;
-        this.idleRadius = 150;
-        this.idleTopCornerRight = null;
-        this.firstFlag = false;
-        this.idleBottomCornerRight = null;
-        this.secondFlag = false;
-        this.idleTopCornerLeft = null;
-        this.thirdFlag = false;
-        this.idleBottomCornerLeft = null;
-        // Combat Properties
-        this.life = 100;
-        this.attack = 5;
-    };
-
-    createElement(classObject) {
-        this.element = document.createElement("div");
-        this.element.classList.add(classObject);
-        const iconEnemy = document.createElement("div");
-        const healthBar = document.createElement("div");
-        iconEnemy.classList.add("iconEnemy");
-        healthBar.classList.add("health-barEnemy");
-        this.element.appendChild(iconEnemy);
-        this.element.appendChild(healthBar);
-        // remember the bug we had in class? We have to append the element to the game area before we can get its width and height!
-        this.gameAreaElement.appendChild(this.element);
-        this.height = this.element.getBoundingClientRect().height;
-        this.width = this.element.getBoundingClientRect().width;
-        const yCoordinate = Math.floor(Math.random() * (this.gameAreaHeight - this.height))
-        const xCoordinate = Math.floor(Math.random() * (this.gameAreaWidth - this.width))
-        this.y = yCoordinate;
-        this.x = xCoordinate;
-        this.element.style.top = `${yCoordinate}px`;
-        this.element.style.left = `${xCoordinate}px`;
-        this.idleTopCornerRight = this.x + this.idleRadius;
-        this.idleBottomCornerRight = this.y + this.idleRadius;
-        this.idleTopCornerLeft = this.x - this.idleRadius;
-        this.idleBottomCornerLeft = this.y - this.idleRadius;
-    };
-
-    enemyCollission(collisionObject) {
-        if (
-            (
-                // Checks right upper corner of player agains enemy width position
-                (
-                    this.x >= collisionObject.x
-                    && this.x <= collisionObject.x + collisionObject.width
-                )
-                //  Checks left upper corner of player element against enemy width position
-                || (
-                    this.x + this.width <= collisionObject.width + collisionObject.x
-                    && this.x + this.width >= collisionObject.x
-                )
-            )
-            && (
-                // Checks upper left corner of player agains enemy height position
-                (
-                    this.y >= collisionObject.y
-                    && this.y <= collisionObject.y + collisionObject.height
-                )
-                // Checks lower left corner of player agains enemy height position
-                || (
-                    this.y + this.height <= collisionObject.y + collisionObject.height
-                    && this.y + this.height >= collisionObject.y
-                )
-            )
-        ) {
-            let diffX = (this.x + this.width / 2) - (collisionObject.x + collisionObject.width / 2);
-            let diffY = (collisionObject.y + collisionObject.height / 2) - (this.y + this.height / 2);
-            if (diffX < 0) {
-                if (diffY < 0) {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y + collisionObject.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM BOTTOM");
-                    } else {
-                        this.x = collisionObject.x - this.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM RIGHT");
-                    };
-                    return true;
-                } else {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y - this.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM TOP");
-                    } else {
-                        this.x = collisionObject.x - this.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM RIGHT");
-                    };
-                    return true;
-                };
-            } else {
-                if (diffY < 0) {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y + collisionObject.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM BOTTOM");
-                    } else {
-                        this.x = collisionObject.x + collisionObject.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM LEFT");
-                    };
-                    return true;
-                } else {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y - this.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM TOP");
-                    } else {
-                        this.x = collisionObject.x + collisionObject.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM LEFT");
-                    };
-                    return true;
-                };
-            };
-        } else {
-            return false;
-        };
-    };
-
-    idleState(playerObject) {
-        this.distance = (((playerObject.x + playerObject.width / 2) - (this.x + this.width / 2)) ** 2 +
-            ((playerObject.y + playerObject.height / 2) - (this.y + this.height / 2)) ** 2) ** 1 / 2;
-        if (this.distance <= this.ChaseRadius) {
-            return true;
-        } else {
-            return false;
-        };
-    };
-
-    idleMovement() {
-        // Starts idle movement towards right 
-        if (!this.firstFlag) {
-            this.x += this.idleVelocity;
-            this.element.querySelector(".iconEnemy").style.backgroundImage = "url(../images/skelly_right.png)"
-            if (this.x + this.width >= this.gameAreaWidth) {
-                this.firstFlag = true;
-                this.x = this.gameAreaWidth - this.width;
-            } else if (this.x >= this.idleTopCornerRight) {
-                this.firstFlag = true;
-            };
-            this.element.style.left = `${this.x}px`;
-        };
-        // Ctarts idle movement towards down
-        if (!this.secondFlag & this.firstFlag) {
-            this.element.querySelector(".iconEnemy").style.backgroundImage = "url(../images/skelly_down.png)"
-            this.y += this.idleVelocity;
-            if (this.y + this.height >= this.gameAreaHeight) {
-                this.secondFlag = true;
-                this.y = this.gameAreaHeight - this.height;
-            } else if (this.y >= this.idleBottomCornerRight) {
-                this.secondFlag = true;
-            };
-            this.element.style.top = `${this.y}px`;
-        };
-        // Continues idle movement towards right
-        if (!this.thirdFlag & this.secondFlag & this.firstFlag) {
-            this.element.querySelector(".iconEnemy").style.backgroundImage = "url(../images/skelly_left.png)"
-            this.x -= this.idleVelocity;
-            if (this.x <= 0) {
-                this.thirdFlag = true;
-                this.x = 0
-            } else if (this.x <= this.idleTopCornerLeft) {
-                this.thirdFlag = true;
-            };
-            this.element.style.left = `${this.x}px`;
-        };
-        // Continues idle movement towards up and resets movement
-        if (this.thirdFlag & this.secondFlag & this.firstFlag) {
-            this.element.querySelector(".iconEnemy").style.backgroundImage = "url(../images/skelly_up.png)"
-            this.y -= this.idleVelocity;
-            if (this.y <= 0) {
-                this.firstFlag = false;
-                this.secondFlag = false;
-                this.thirdFlag = false;
-                this.y = 0;
-            } else if (this.y <= this.idleBottomCornerLeft) {
-                this.firstFlag = false;
-                this.secondFlag = false;
-                this.thirdFlag = false;
-            };
-            this.element.style.top = `${this.y}px`;
-        };
-    };
-
-    chase(playerObject) {
-        // randomly moves the enemy on the X axis towards the player direction
-        if (Math.floor(Math.random() * 2) === 0 && this.x !== playerObject.x) {
-            if (this.x > playerObject.width + playerObject.x) {
-                this.element.querySelector(".iconEnemy").style.backgroundImage = "url(../images/skelly_left.png)"
-                this.x -= this.velocity;
-                if (this.x < playerObject.width + playerObject.x) {
-                    this.x = playerObject.width + playerObject.x;
-                };
-                this.element.style.left = `${this.x}px`;
-            } else if (this.x + this.width < playerObject.x) {
-                this.element.querySelector(".iconEnemy").style.backgroundImage = "url(../images/skelly_right.png)"
-                this.x += this.velocity;
-                if (this.x + this.width > playerObject.x) {
-                    this.x = playerObject.x - this.width;
-                };
-                this.element.style.left = `${this.x}px`;
-            };
-            // randomly moves the enemy on the Y axis towards the player direction
-        } else if (Math.floor(Math.random() * 2) === 1 && this.y !== playerObject.y) {
-            if (this.y > playerObject.height + playerObject.y) {
-                this.element.querySelector(".iconEnemy").style.backgroundImage = "url(../images/skelly_up.png)"
-                this.y -= this.velocity;
-                if (this.y < playerObject.height + playerObject.y) {
-                    this.y = playerObject.height + playerObject.y;
-                };
-                this.element.style.top = `${this.y}px`;
-            } else if (this.y + this.height < playerObject.y) {
-                this.element.querySelector(".iconEnemy").style.backgroundImage = "url(../images/skelly_down.png)"
-                this.y += this.velocity;
-                if (this.y + this.height > playerObject.y) {
-                    this.y = playerObject.y - this.height;
-                };
-                this.element.style.top = `${this.y}px`;
-            };
-        };
-    };
-
-    attack1(objectGame) {
-        if (!objectGame.gameOver) {
-            if (this.enemyCollission(objectGame)) {
-                if (Math.floor(Math.random() * 10) === 0) {
-                    if (audioEnemySlash.paused) {
-                        audioEnemySlash.play();
-                    } else {
-                        audioEnemySlash.currentTime = 0;
-                    };
-                    objectGame.life -= this.attack;
-                    if (objectGame.life <= 0) {
-                        if (audioDead.paused) {
-                            audioDead.play();
-                        } else {
-                            audioDead.currentTime = 0;
-                        };
-                        audioGame.pause();
-                        audioGame.currentTime = 0;
-                        if (audioDead.paused) {
-                            audioGameOver.play();
-                        } else {
-                            audioGameOver.currentTime = 0;
-                        };
-                        objectGame.element.remove();
-                        objectGame.gameOver = true;
-                    };
-                    objectGame.element.querySelector(".health-bar").style.width = `${objectGame.life}%`
-                };
-            };
-        };
-    };
-};
-
-class gameEnemySpecial {
-    constructor(gameAreaElement) {
-        // Define Boundaries
-        this.gameAreaElement = document.querySelector("#game-area");
-        this.gameAreaHeight = gameAreaElement.getBoundingClientRect().height;
-        this.gameAreaWidth = gameAreaElement.getBoundingClientRect().width;
-        // Define Position
-        this.x = 0;
-        this.y = 0;
-        this.width = 0;
-        this.height = 0;
-        // Define Boundaries
-        this.gameAreaHeight = gameAreaElement.getBoundingClientRect().height;
-        this.gameAreaWidth = gameAreaElement.getBoundingClientRect().width;
-        // Movement Properties
-        this.direction = [false, false, false, false];
-        this.velocity = 5;
-        this.ChaseRadius = 50000 * 2;
-        // Idle Movement Properties
-        this.idleVelocity = this.velocity / 2;
-        this.idleRadius = 150;
-        this.idleTopCornerRight = null;
-        this.firstFlag = false;
-        this.idleBottomCornerRight = null;
-        this.secondFlag = false;
-        this.idleTopCornerLeft = null;
-        this.thirdFlag = false;
-        this.idleBottomCornerLeft = null;
-        // Combat Properties
-        this.life = 300;
-        this.attack = 20;
-    };
-
-    createElement(classObject) {
-        this.element = document.createElement("div");
-        this.element.classList.add(classObject);
-        const iconEnemy = document.createElement("div");
-        const healthBar = document.createElement("div");
-        iconEnemy.classList.add("iconEnemySpecial");
-        healthBar.classList.add("health-barEnemySpecial");
-        this.element.appendChild(iconEnemy);
-        this.element.appendChild(healthBar);
-        // remember the bug we had in class? We have to append the element to the game area before we can get its width and height!
-        this.gameAreaElement.appendChild(this.element);
-        this.height = this.element.getBoundingClientRect().height;
-        this.width = this.element.getBoundingClientRect().width;
-        const yCoordinate = Math.floor(Math.random() * (this.gameAreaHeight - this.height))
-        const xCoordinate = Math.floor(Math.random() * (this.gameAreaWidth - this.width))
-        this.y = yCoordinate;
-        this.x = xCoordinate;
-        this.element.style.top = `${yCoordinate}px`;
-        this.element.style.left = `${xCoordinate}px`;
-        this.idleTopCornerRight = this.x + this.idleRadius;
-        this.idleBottomCornerRight = this.y + this.idleRadius;
-        this.idleTopCornerLeft = this.x - this.idleRadius;
-        this.idleBottomCornerLeft = this.y - this.idleRadius;
-    };
-
-    enemyCollission(collisionObject) {
-        if (
-            (
-                // Checks right upper corner of player agains enemy width position
-                (
-                    this.x >= collisionObject.x
-                    && this.x <= collisionObject.x + collisionObject.width
-                )
-                //  Checks left upper corner of player element against enemy width position
-                || (
-                    this.x + this.width <= collisionObject.width + collisionObject.x
-                    && this.x + this.width >= collisionObject.x
-                )
-            )
-            && (
-                // Checks upper left corner of player agains enemy height position
-                (
-                    this.y >= collisionObject.y
-                    && this.y <= collisionObject.y + collisionObject.height
-                )
-                // Checks lower left corner of player agains enemy height position
-                || (
-                    this.y + this.height <= collisionObject.y + collisionObject.height
-                    && this.y + this.height >= collisionObject.y
-                )
-            )
-        ) {
-            let diffX = (this.x + this.width / 2) - (collisionObject.x + collisionObject.width / 2);
-            let diffY = (collisionObject.y + collisionObject.height / 2) - (this.y + this.height / 2);
-            if (diffX < 0) {
-                if (diffY < 0) {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y + collisionObject.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM BOTTOM");
-                    } else {
-                        this.x = collisionObject.x - this.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM RIGHT");
-                    };
-                    return true;
-                } else {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y - this.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM TOP");
-                    } else {
-                        this.x = collisionObject.x - this.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM RIGHT");
-                    };
-                    return true;
-                };
-            } else {
-                if (diffY < 0) {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y + collisionObject.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM BOTTOM");
-                    } else {
-                        this.x = collisionObject.x + collisionObject.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM LEFT");
-                    };
-                    return true;
-                } else {
-                    if (Math.abs(diffY) > Math.abs(diffX)) {
-                        this.y = collisionObject.y - this.height;
-                        this.element.style.top = `${this.y}px`;
-                        // console.log("CRASH FROM TOP");
-                    } else {
-                        this.x = collisionObject.x + collisionObject.width;
-                        this.element.style.left = `${this.x}px`;
-                        // console.log("CRASH FROM LEFT");
-                    };
-                    return true;
-                };
-            };
-        } else {
-            return false;
-        };
-    };
-
-    idleState(playerObject) {
-        this.distance = (((playerObject.x + playerObject.width / 2) - (this.x + this.width / 2)) ** 2 +
-            ((playerObject.y + playerObject.height / 2) - (this.y + this.height / 2)) ** 2) ** 1 / 2;
-        if (this.distance <= this.ChaseRadius) {
-            return true;
-        } else {
-            return false;
-        };
-    };
-
-    idleMovement() {
-        // Starts idle movement towards right 
-        if (!this.firstFlag) {
-            this.x += this.idleVelocity;
-            this.element.querySelector(".iconEnemySpecial").style.backgroundImage = "url(../images/skelly_right.png)"
-            if (this.x + this.width >= this.gameAreaWidth) {
-                this.firstFlag = true;
-                this.x = this.gameAreaWidth - this.width;
-            } else if (this.x >= this.idleTopCornerRight) {
-                this.firstFlag = true;
-            };
-            this.element.style.left = `${this.x}px`;
-        };
-        // Ctarts idle movement towards down
-        if (!this.secondFlag & this.firstFlag) {
-            this.element.querySelector(".iconEnemySpecial").style.backgroundImage = "url(../images/skelly_down.png)"
-            this.y += this.idleVelocity;
-            if (this.y + this.height >= this.gameAreaHeight) {
-                this.secondFlag = true;
-                this.y = this.gameAreaHeight - this.height;
-            } else if (this.y >= this.idleBottomCornerRight) {
-                this.secondFlag = true;
-            };
-            this.element.style.top = `${this.y}px`;
-        };
-        // Continues idle movement towards right
-        if (!this.thirdFlag & this.secondFlag & this.firstFlag) {
-            this.element.querySelector(".iconEnemySpecial").style.backgroundImage = "url(../images/skelly_left.png)"
-            this.x -= this.idleVelocity;
-            if (this.x <= 0) {
-                this.thirdFlag = true;
-                this.x = 0
-            } else if (this.x <= this.idleTopCornerLeft) {
-                this.thirdFlag = true;
-            };
-            this.element.style.left = `${this.x}px`;
-        };
-        // Continues idle movement towards up and resets movement
-        if (this.thirdFlag & this.secondFlag & this.firstFlag) {
-            this.element.querySelector(".iconEnemySpecial").style.backgroundImage = "url(../images/skelly_up.png)"
-            this.y -= this.idleVelocity;
-            if (this.y <= 0) {
-                this.firstFlag = false;
-                this.secondFlag = false;
-                this.thirdFlag = false;
-                this.y = 0;
-            } else if (this.y <= this.idleBottomCornerLeft) {
-                this.firstFlag = false;
-                this.secondFlag = false;
-                this.thirdFlag = false;
-            };
-            this.element.style.top = `${this.y}px`;
-        };
-    };
-
-    chase(playerObject) {
-        // randomly moves the enemy on the X axis towards the player direction
-        if (Math.floor(Math.random() * 2) === 0 && this.x !== playerObject.x) {
-            if (this.x > playerObject.width + playerObject.x) {
-                this.element.querySelector(".iconEnemySpecial").style.backgroundImage = "url(../images/skelly_left.png)"
-                this.x -= this.velocity;
-                if (this.x < playerObject.width + playerObject.x) {
-                    this.x = playerObject.width + playerObject.x;
-                };
-                this.element.style.left = `${this.x}px`;
-            } else if (this.x + this.width < playerObject.x) {
-                this.element.querySelector(".iconEnemySpecial").style.backgroundImage = "url(../images/skelly_right.png)"
-                this.x += this.velocity;
-                if (this.x + this.width > playerObject.x) {
-                    this.x = playerObject.x - this.width;
-                };
-                this.element.style.left = `${this.x}px`;
-            };
-            // randomly moves the enemy on the Y axis towards the player direction
-        } else if (Math.floor(Math.random() * 2) === 1 && this.y !== playerObject.y) {
-            if (this.y > playerObject.height + playerObject.y) {
-                this.element.querySelector(".iconEnemySpecial").style.backgroundImage = "url(../images/skelly_up.png)"
-                this.y -= this.velocity;
-                if (this.y < playerObject.height + playerObject.y) {
-                    this.y = playerObject.height + playerObject.y;
-                };
-                this.element.style.top = `${this.y}px`;
-            } else if (this.y + this.height < playerObject.y) {
-                this.element.querySelector(".iconEnemySpecial").style.backgroundImage = "url(../images/skelly_down.png)"
-                this.y += this.velocity;
-                if (this.y + this.height > playerObject.y) {
-                    this.y = playerObject.y - this.height;
-                };
-                this.element.style.top = `${this.y}px`;
-            };
-        };
-    };
-
-    attack1(objectGame) {
-        if (!objectGame.gameOver) {
-            if (this.enemyCollission(objectGame)) {
-                if (Math.floor(Math.random() * 10) === 0) {
-                    if (audioEnemySlash.paused) {
-                        audioEnemySlash.play();
-                    } else {
-                        audioEnemySlash.currentTime = 0;
-                    };
-                    objectGame.life -= this.attack;
-                    if (objectGame.life <= 0) {
-                        if (audioDead.paused) {
-                            audioDead.play();
-                        } else {
-                            audioDead.currentTime = 0;
-                        };
-                        audioGame.pause();
-                        audioGame.currentTime = 0;
-                        if (audioDead.paused) {
-                            audioGameOver.play();
-                        } else {
-                            audioGameOver.currentTime = 0;
-                        };
-                        objectGame.element.remove();
-                        objectGame.gameOver = true;
-                    };
-                    objectGame.element.querySelector(".health-bar").style.width = `${objectGame.life}%`
-                };
-            };
-        };
-    };
-};
-
-class fieldObject {
-    constructor(classObject) {
-        this.classObject = classObject;
-        // Define Boundaries
-        this.gameAreaElement = document.querySelector("#game-area");
-        this.gameAreaHeight = gameAreaElement.getBoundingClientRect().height;
-        this.gameAreaWidth = gameAreaElement.getBoundingClientRect().width;
-        // Define Position
-        this.x = 0;
-        this.y = 0;
-        this.width = 0;
-        this.height = 0;
-        this.createElement()
-    };
-
-    createElement() {
-        if (this.classObject === 'lake') {
-            this.element = document.createElement("div")
-            this.element.classList.add("lake_surroundings");
-            this.gameAreaElement.appendChild(this.element);
-            this.element1 = document.createElement("div");
-            this.element1.classList.add(this.classObject);
-            this.element.appendChild(this.element1);
-            this.height = this.element.getBoundingClientRect().height;
-            this.width = this.element.getBoundingClientRect().width;
-        } else if (this.classObject === 'lake1') {
-            this.classObject === 'lake1';
-            this.element = document.createElement("div");
-            this.element.classList.add("lake_surroundings1");
-            this.gameAreaElement.appendChild(this.element);
-            this.element1 = document.createElement("div");
-            this.element1.classList.add(this.classObject);
-            this.element.appendChild(this.element1);
-            this.height = this.element.getBoundingClientRect().height;
-            this.width = this.element.getBoundingClientRect().width;
-        } else {
-            this.element = document.createElement("div");
-            this.element.classList.add(this.classObject);
-            this.gameAreaElement.appendChild(this.element);
-            this.height = this.element.getBoundingClientRect().height;
-            this.width = this.element.getBoundingClientRect().width;
-        };
-    };
-
-    move(coordinateY, coordinateX) {
-        this.y = coordinateY;
-        this.x = coordinateX;
-        this.element.style.top = `${coordinateY}px`;
-        this.element.style.left = `${coordinateX}px`;
+    /** Plain AABB overlap test. No side effects - safe to use for hit detection. */
+    function overlaps(a, b) {
+        return a.x < b.x + b.width
+            && a.x + a.width > b.x
+            && a.y < b.y + b.height
+            && a.y + a.height > b.y;
     }
-};
 
-class fireBall {
-    constructor() {
-        // Define Boundaries
-        this.gameAreaElement = document.querySelector("#game-area");
-        this.gameAreaHeight = gameAreaElement.getBoundingClientRect().height;
-        this.gameAreaWidth = gameAreaElement.getBoundingClientRect().width;
-        // Define Position
-        this.x = 0;
-        this.y = 0;
-        this.width = 0;
-        this.height = 0;
-        this.direction = 'down';
-        this.velocity = 20;
-        this.attack = 25;
+    /**
+     * Push `a` out of `b` along the axis of least penetration and report whether
+     * they were touching. This replaces the four hand-written sign trees that
+     * used to live on each class.
+     */
+    function resolve(a, b) {
+        if (!overlaps(a, b)) return false;
+        const dx = (a.x + a.width / 2) - (b.x + b.width / 2);
+        const dy = (a.y + a.height / 2) - (b.y + b.height / 2);
+        const penX = (a.width + b.width) / 2 - Math.abs(dx);
+        const penY = (a.height + b.height) / 2 - Math.abs(dy);
+        if (penX < penY) {
+            a.x += dx < 0 ? -penX : penX;
+        } else {
+            a.y += dy < 0 ? -penY : penY;
+        }
+        return true;
+    }
+
+    // ---------------------------------------------------------------- audio
+    const Sfx = {
+        tracks: {},
+        muted: false,
+        register(name, selector) {
+            const el = document.querySelector(selector);
+            if (el) this.tracks[name] = el;
+        },
+        play(name) {
+            const track = this.tracks[name];
+            if (!track || this.muted) return;
+            track.currentTime = 0;
+            // Autoplay policies reject until the first gesture; that is expected.
+            const played = track.play();
+            if (played) played.catch(() => { });
+        },
+        loop(name) {
+            const track = this.tracks[name];
+            if (!track || this.muted) return;
+            track.loop = true;
+            const played = track.play();
+            if (played) played.catch(() => { });
+        },
+        stop(name) {
+            const track = this.tracks[name];
+            if (!track) return;
+            track.pause();
+            track.currentTime = 0;
+        },
     };
 
-    createElement(gameObject) {
-        if (gameObject.mana >= 20) {
+    // --------------------------------------------------------------- entity
+    /**
+     * Shared position/render plumbing. Every write to the DOM is guarded by a
+     * cached previous value, so a stationary entity costs zero style writes.
+     */
+    class Entity {
+        constructor() {
+            this.x = 0;
+            this.y = 0;
+            this.width = 0;
+            this.height = 0;
+            this.alive = true;
+            this._transform = "";
+            this._facing = "";
+            this._barWidth = -1;
+        }
+
+        get centerX() { return this.x + this.width / 2; }
+        get centerY() { return this.y + this.height / 2; }
+
+        /** Compositor-only position update. Rounded to keep pixel art crisp. */
+        render(rotation) {
+            const x = Math.round(this.x);
+            const y = Math.round(this.y);
+            const transform = rotation
+                ? `translate3d(${x}px, ${y}px, 0) rotate(${rotation}deg)`
+                : `translate3d(${x}px, ${y}px, 0)`;
+            if (transform !== this._transform) {
+                this.element.style.transform = transform;
+                this._transform = transform;
+            }
+        }
+
+        /** Facing drives the sprite through CSS attribute selectors, not inline styles. */
+        setFacing(icon, facing) {
+            if (facing && facing !== this._facing) {
+                icon.dataset.facing = facing;
+                this._facing = facing;
+            }
+        }
+
+        setBar(bar, percent) {
+            const rounded = Math.round(clamp(percent, 0, 100));
+            if (rounded !== this._barWidth) {
+                bar.style.width = `${rounded}%`;
+                this._barWidth = rounded;
+            }
+        }
+
+        destroy() {
+            this.alive = false;
+            if (this.element) this.element.remove();
+        }
+    }
+
+    // --------------------------------------------------------------- player
+    class Player extends Entity {
+        constructor(bounds) {
+            super();
+            this.element = document.querySelector("#player");
+            this.icon = this.element.querySelector(".icon");
+            this.healthBar = this.element.querySelector(".health-bar");
+            this.manaBar = this.element.querySelector(".mana-bar");
+
+            const rect = this.element.getBoundingClientRect();
+            this.height = rect.height;
+            this.width = rect.width;
+
+            this.bounds = bounds;
+            this.x = bounds.width / 2 - this.width / 2;
+            this.y = bounds.height / 2 - this.height / 2;
+
+            const cfg = CONFIG.player;
+            this.speed = cfg.speed;
+            this.attack = cfg.attack;
+            this.maxLife = cfg.maxLife;
+            this.maxMana = cfg.maxMana;
+            this.life = cfg.maxLife;
+            this.mana = cfg.maxMana;
+
+            this.facing = "down";
+            this.moving = false;
+            this._moving = false;
+            this.attackTimer = 0;
+            this.castTimer = 0;
+            this.gameOver = false;
+            this.score = 0;
+
+            this.render();
+            this.setFacing(this.icon, this.facing);
+        }
+
+        /**
+         * @param dt      seconds elapsed this step
+         * @param input   { up, down, left, right, facing }
+         */
+        update(dt, input) {
+            let mx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+            let my = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+            this.moving = mx !== 0 || my !== 0;
+
+            if (this.moving) {
+                // Normalise so diagonals are not ~1.41x faster than the axes.
+                const scale = this.speed * dt / Math.hypot(mx, my);
+                this.x += mx * scale;
+                this.y += my * scale;
+                this.x = clamp(this.x, 0, this.bounds.width - this.width);
+                this.y = clamp(this.y, 0, this.bounds.height - this.height);
+                if (input.facing) this.facing = input.facing;
+            }
+
+            if (this.attackTimer > 0) this.attackTimer -= dt * 1000;
+            if (this.castTimer > 0) this.castTimer -= dt * 1000;
+
+            this.setFacing(this.icon, this.facing);
+            if (this.moving !== this._moving) {
+                this.icon.classList.toggle("walking", this.moving);
+                this._moving = this.moving;
+            }
+            this.render();
+        }
+
+        canAttack() { return this.attackTimer <= 0; }
+
+        beginAttack() { this.attackTimer = CONFIG.player.attackCooldown; }
+
+        // Without this, a key that repeats without setting `event.repeat` (or a
+        // player mashing L) empties the whole mana pool in a single frame burst.
+        canCast() { return this.castTimer <= 0; }
+
+        beginCast() { this.castTimer = CONFIG.player.castCooldown; }
+
+        /** Rectangle swept by the spear, used for melee hit detection. */
+        meleeBox() {
+            const reach = CONFIG.player.meleeReach;
+            switch (this.facing) {
+                case "up": return { x: this.x, y: this.y - reach, width: this.width, height: reach };
+                case "down": return { x: this.x, y: this.y + this.height, width: this.width, height: reach };
+                case "left": return { x: this.x - reach, y: this.y, width: reach, height: this.height };
+                default: return { x: this.x + this.width, y: this.y, width: reach, height: this.height };
+            }
+        }
+
+        heal(life, mana) {
+            this.life = clamp(this.life + life, 0, this.maxLife);
+            this.mana = clamp(this.mana + mana, 0, this.maxMana);
+        }
+
+        regenMana(amount) {
+            this.mana = clamp(this.mana + amount, 0, this.maxMana);
+        }
+
+        spendMana(amount) {
+            if (this.mana < amount) return false;
+            this.mana -= amount;
+            return true;
+        }
+
+        takeDamage(amount) {
+            this.life = clamp(this.life - amount, 0, this.maxLife);
+            return this.life <= 0;
+        }
+
+        syncBars() {
+            this.setBar(this.healthBar, (this.life / this.maxLife) * 100);
+            const mana = Math.round((this.mana / this.maxMana) * 100);
+            if (mana !== this._manaWidth) {
+                this.manaBar.style.width = `${mana}%`;
+                this._manaWidth = mana;
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- enemy
+    // Measuring a fresh element forces a layout flush, so we do it once per
+    // variant instead of once per spawn.
+    const sizeCache = Object.create(null);
+
+    class Enemy extends Entity {
+        constructor(variantName, bounds) {
+            super();
+            this.variantName = variantName;
+            this.variant = ENEMY_VARIANTS[variantName];
+            this.bounds = bounds;
+            this.speed = this.variant.speed;
+            this.attack = this.variant.attack;
+            this.maxLife = this.variant.maxLife;
+            this.life = this.variant.maxLife;
+            this.attackTimer = 0;
+            this.facing = "down";
+            this.build();
+        }
+
+        build() {
+            const variant = this.variant;
             this.element = document.createElement("div");
-            mainLibraryObjects.arrayFireBalls.push(this);
-            this.element.classList.add("fireBall");
-            this.gameAreaElement.appendChild(this.element);
-            this.height = this.element.getBoundingClientRect().height;
-            this.width = this.element.getBoundingClientRect().width;
-            this.direction = gameObject.currentDirection;
-            if (this.direction === "up") {
-                this.element.style.transform = "rotate(-90deg)";
-                this.y = gameObject.y - this.height;
-                this.x = gameObject.x + gameObject.width / 2 - this.width / 2
-            } else if (this.direction === "down") {
-                this.element.style.transform = "rotate(90deg)";
-                this.y = gameObject.y + gameObject.height;
-                this.x = gameObject.x + gameObject.width / 2 - this.width / 2
-            } else if (this.direction === "left") {
-                this.element.style.transform = "rotate(180deg)";
-                this.y = gameObject.y + gameObject.height / 2 - this.height / 2;
-                this.x = gameObject.x - this.width;
-            } else if (this.direction === "right") {
-                this.y = gameObject.y + gameObject.height / 2 - this.height / 2;
-                this.x = gameObject.x + gameObject.width;
-            }
-            this.element.style.top = `${this.y}px`;
-            this.element.style.left = `${this.x}px`;
-            gameObject.mana -= 20;
-            gameObject.element.querySelector(".mana-bar").style.width = `${gameObject.mana}%`
-        };
-    };
+            this.element.className = variant.className;
 
-    move(i) {
-        if (this.direction === "up") {
-            this.y -= this.velocity;
-            this.element.style.top = `${this.y}px`;
-            if (this.y <= 0) {
-                this.element.style.backgroundImage = "url(../images/explosion.png)";
-                this.element.style.backgroundSize = "100% 100%";
-                this.element.style.height = "100px";
-                this.element.style.top = `${this.y - 20}px`
-                setTimeout(() => {
-                    this.element.remove();
-                }, 300);
-                mainLibraryObjects.arrayFireBalls.splice(i, 1);
-            }
-        } else if (this.direction === "down") {
-            this.y += this.velocity;
-            this.element.style.top = `${this.y}px`;
-            if (this.y + this.height >= this.gameAreaHeight) {
-                this.element.style.backgroundImage = "url(../images/explosion.png)";
-                this.element.style.backgroundSize = "100% 100%";
-                this.element.style.height = "100px";
-                this.element.style.top = `${this.y - 20}px`
-                setTimeout(() => {
-                    this.element.remove();
-                }, 300);
-                mainLibraryObjects.arrayFireBalls.splice(i, 1);
-            }
-        } else if (this.direction === "left") {
-            this.x -= this.velocity;
-            this.element.style.left = `${this.x}px`;
-            if (this.x <= 0) {
-                this.element.style.backgroundImage = "url(../images/explosion.png)";
-                this.element.style.backgroundSize = "100% 100%";
-                this.element.style.height = "100px";
-                this.element.style.top = `${this.y - 20}px`
-                setTimeout(() => {
-                    this.element.remove();
-                }, 300);
-                mainLibraryObjects.arrayFireBalls.splice(i, 1);
-            }
-        } else if (this.direction === "right") {
-            this.x += this.velocity;
-            this.element.style.left = `${this.x}px`;
-            if (this.x + this.width >= this.gameAreaWidth) {
-                this.element.style.backgroundImage = "url(../images/explosion.png)";
-                this.element.style.backgroundSize = "100% 100%";
-                this.element.style.height = "100px";
-                this.element.style.top = `${this.y - 20}px`
-                setTimeout(() => {
-                    this.element.remove();
-                }, 300);
-                mainLibraryObjects.arrayFireBalls.splice(i, 1);
-            }
-        };
-    };
+            this.icon = document.createElement("div");
+            this.icon.className = variant.iconClass;
+            this.icon.dataset.facing = this.facing;
 
-    fireBallCollission(collisionObject, i, j, playerObject) {
-        if (
-            (
-                // Checks right upper corner of player agains enemy width position
-                (
-                    this.x >= collisionObject.x
-                    && this.x <= collisionObject.x + collisionObject.width
-                )
-                //  Checks left upper corner of player element against enemy width position
-                || (
-                    this.x + this.width <= collisionObject.width + collisionObject.x
-                    && this.x + this.width >= collisionObject.x
-                )
-            )
-            && (
-                // Checks upper left corner of player agains enemy height position
-                (
-                    this.y >= collisionObject.y
-                    && this.y <= collisionObject.y + collisionObject.height
-                )
-                // Checks lower left corner of player agains enemy height position
-                || (
-                    this.y + this.height <= collisionObject.y + collisionObject.height
-                    && this.y + this.height >= collisionObject.y
-                )
-            )
-        ) {
-            this.element.style.backgroundImage = "url(../images/explosion.png)";
-            this.element.style.backgroundSize = "100% 100%";
-            this.element.style.height = "100px";
-            this.element.style.top = `${this.y - 20}px`
-            setTimeout(() => {
-                this.element.remove();
-            }, 300);
-            mainLibraryObjects.arrayFireBalls.splice(i, 1);
-            if (collisionObject.element.classList[0] === 'enemy') {
-                collisionObject.life -= this.attack;
-                collisionObject.element.querySelector(".health-barEnemy").style.width = `${collisionObject.life}%`
-                if (collisionObject.life <= 0) {
-                    if (audioKill.paused) {
-                        audioKill.play();
-                    } else {
-                        audioKill.currentTime = 0;
-                    };
-                    enemyCounter++;
-                    mainLibraryObjects.arrayEnemy.splice(j, 1);
-                    collisionObject.element.remove();
-                    playerObject.score += 10;
-                    console.log(`Score is ${playerObject.score}`)
-                    playerObject.life += 30;
-                    playerObject.mana += 40;
-                    if (playerObject.life > 100) {
-                        playerObject.life = 100;
-                    };
-                    if (playerObject.mana > 100) {
-                        playerObject.mana = 100
-                    };
-                    playerObject.element.querySelector(".mana-bar").style.width = `${playerObject.mana}%`
-                    playerObject.element.querySelector(".health-bar").style.width = `${playerObject.life}%`
-                };
-            };
-            if (collisionObject.element.classList[0] === 'enemySpecial') {
-                collisionObject.life -= this.attack;
-                collisionObject.element.querySelector(".health-barEnemySpecial").style.width = `${collisionObject.life / 5}%`
-                if (collisionObject.life <= 0) {
-                    if (audioKill.paused) {
-                        audioKill.play();
-                    } else {
-                        audioKill.currentTime = 0;
-                    };
-                    enemyCounter++;
-                    mainLibraryObjects.arrayEnemy.splice(j, 1);
-                    collisionObject.element.remove();
-                    playerObject.score += 100;
-                    console.log(`Score is ${playerObject.score}`)
-                    playerObject.life += 100;
-                    playerObject.mana += 100;
-                    if (playerObject.life > 100) {
-                        playerObject.life = 100;
-                    };
-                    if (playerObject.mana > 100) {
-                        playerObject.mana = 100
-                    };
-                    playerObject.element.querySelector(".mana-bar").style.width = `${playerObject.mana}%`
-                    playerObject.element.querySelector(".health-bar").style.width = `${playerObject.life}%`
-                };
-            };
-        };
+            const barTrack = document.createElement("div");
+            barTrack.className = "enemy-bar-track";
+            this.healthBar = document.createElement("div");
+            this.healthBar.className = variant.barClass;
+            barTrack.appendChild(this.healthBar);
+
+            // Bar first so it sits above the sprite, matching the player.
+            this.element.appendChild(barTrack);
+            this.element.appendChild(this.icon);
+            this.bounds.element.appendChild(this.element);
+
+            const cached = sizeCache[variant.className];
+            if (cached) {
+                this.width = cached.width;
+                this.height = cached.height;
+            } else {
+                const rect = this.element.getBoundingClientRect();
+                this.width = rect.width;
+                this.height = rect.height;
+                sizeCache[variant.className] = { width: this.width, height: this.height };
+            }
+        }
+
+        /** Place the enemy away from the player and clear of scenery. */
+        placeAwayFrom(player, obstacles) {
+            const { safeRadius, maxTries } = CONFIG.spawn;
+            for (let attempt = 0; attempt < maxTries; attempt++) {
+                this.x = Math.random() * (this.bounds.width - this.width);
+                this.y = Math.random() * (this.bounds.height - this.height);
+                const dx = this.centerX - player.centerX;
+                const dy = this.centerY - player.centerY;
+                if (Math.hypot(dx, dy) < safeRadius) continue;
+                if (obstacles.some((obstacle) => overlaps(this, obstacle))) continue;
+                break;
+            }
+            this.render();
+        }
+
+        chase(player, dt) {
+            const dx = player.centerX - this.centerX;
+            const dy = player.centerY - this.centerY;
+            const distance = Math.hypot(dx, dy);
+            if (distance > 1) {
+                const scale = this.speed * dt / distance;
+                this.x += dx * scale;
+                this.y += dy * scale;
+                this.x = clamp(this.x, 0, this.bounds.width - this.width);
+                this.y = clamp(this.y, 0, this.bounds.height - this.height);
+                this.facing = Math.abs(dx) > Math.abs(dy)
+                    ? (dx < 0 ? "left" : "right")
+                    : (dy < 0 ? "up" : "down");
+            }
+            if (this.attackTimer > 0) this.attackTimer -= dt * 1000;
+            this.setFacing(this.icon, this.facing);
+            this.render();
+        }
+
+        /** Returns damage dealt this step (0 when out of range or on cooldown). */
+        strike(player) {
+            const touching = resolve(this, player);
+            if (!touching || this.attackTimer > 0) return 0;
+            this.attackTimer = this.variant.attackCooldown;
+            return this.attack;
+        }
+
+        takeDamage(amount) {
+            this.life -= amount;
+            this.setBar(this.healthBar, (this.life / this.maxLife) * 100);
+            return this.life <= 0;
+        }
+    }
+
+    // --------------------------------------------------------- field object
+    class FieldObject extends Entity {
+        constructor(kind, bounds) {
+            super();
+            this.kind = kind;
+            this.bounds = bounds;
+            this.blocksProjectiles = !kind.startsWith("lake");
+
+            if (kind === "lake" || kind === "lake1") {
+                const wrapperClass = kind === "lake" ? "lake_surroundings" : "lake_surroundings1";
+                this.element = document.createElement("div");
+                this.element.className = wrapperClass;
+                const inner = document.createElement("div");
+                inner.className = kind;
+                this.element.appendChild(inner);
+            } else {
+                this.element = document.createElement("div");
+                this.element.className = kind;
+            }
+            bounds.element.appendChild(this.element);
+
+            const cached = sizeCache[kind];
+            if (cached) {
+                this.width = cached.width;
+                this.height = cached.height;
+            } else {
+                const rect = this.element.getBoundingClientRect();
+                this.width = rect.width;
+                this.height = rect.height;
+                sizeCache[kind] = { width: this.width, height: this.height };
+            }
+        }
+
+        moveTo(x, y) {
+            this.x = clamp(x, 0, this.bounds.width - this.width);
+            this.y = clamp(y, 0, this.bounds.height - this.height);
+            this.render();
+        }
+    }
+
+    // ------------------------------------------------------------- fireball
+    const FIREBALL_ROTATION = { up: -90, down: 90, left: 180, right: 0 };
+
+    class Fireball extends Entity {
+        constructor(player, bounds) {
+            super();
+            this.bounds = bounds;
+            this.direction = player.facing || "down";
+            this.speed = CONFIG.fireball.speed;
+            this.attack = CONFIG.fireball.attack;
+            this.exploded = false;
+
+            this.element = document.createElement("div");
+            this.element.className = "fireBall";
+            bounds.element.appendChild(this.element);
+
+            const cached = sizeCache.fireBall;
+            if (cached) {
+                this.width = cached.width;
+                this.height = cached.height;
+            } else {
+                const rect = this.element.getBoundingClientRect();
+                this.width = rect.width;
+                this.height = rect.height;
+                sizeCache.fireBall = { width: this.width, height: this.height };
+            }
+
+            switch (this.direction) {
+                case "up":
+                    this.y = player.y - this.height;
+                    this.x = player.centerX - this.width / 2;
+                    break;
+                case "down":
+                    this.y = player.y + player.height;
+                    this.x = player.centerX - this.width / 2;
+                    break;
+                case "left":
+                    this.y = player.centerY - this.height / 2;
+                    this.x = player.x - this.width;
+                    break;
+                default:
+                    this.y = player.centerY - this.height / 2;
+                    this.x = player.x + player.width;
+                    break;
+            }
+            this.render(FIREBALL_ROTATION[this.direction]);
+        }
+
+        update(dt) {
+            if (this.exploded) return;
+            const distance = this.speed * dt;
+            switch (this.direction) {
+                case "up": this.y -= distance; break;
+                case "down": this.y += distance; break;
+                case "left": this.x -= distance; break;
+                default: this.x += distance; break;
+            }
+            this.render(FIREBALL_ROTATION[this.direction]);
+
+            const outOfBounds = this.y + this.height <= 0
+                || this.y >= this.bounds.height
+                || this.x + this.width <= 0
+                || this.x >= this.bounds.width;
+            if (outOfBounds) this.explode();
+        }
+
+        /** Marked dead immediately so it cannot hit a second target this frame. */
+        explode() {
+            if (this.exploded) return;
+            this.exploded = true;
+            this.alive = false;
+            this.element.classList.add("exploding");
+            this.render();
+            setTimeout(() => this.element.remove(), CONFIG.fireball.explodeMs);
+        }
+    }
+
+    return {
+        CONFIG, ENEMY_VARIANTS,
+        clamp, overlaps, resolve,
+        Sfx, Entity, Player, Enemy, FieldObject, Fireball,
     };
-};
+})();

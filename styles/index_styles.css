@@ -1,6 +1,15 @@
 @font-face {
     font-family: 'medieval';
-    src: url("./fonts/MedievalSharp-Regular.ttf");
+    src: url("./fonts/MedievalSharp-Regular.ttf") format("truetype");
+    font-display: swap;
+}
+
+:root {
+    --gold: #e8c87a;
+    --ink: #f6ecd8;
+    --shadow: rgba(0, 0, 0, 0.85);
+    --panel: rgba(12, 9, 7, 0.82);
+    --panel-edge: rgba(232, 200, 122, 0.35);
 }
 
 * {
@@ -12,150 +21,201 @@
 body {
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly;
+    justify-content: center;
     align-items: center;
-    height: 100vh;
-    background-image: url("https://blenderartists.org/uploads/default/original/4X/e/1/b/e1b7cc597f4d71d2e4cf05b64f0bbc988c0426fa.jpeg");
-    background-size: cover;
-    gap: 300px;
+    gap: clamp(32px, 8vh, 90px);
+    min-height: 100vh;
+    padding: 4vh 4vw;
+    /* Was a remote blenderartists.org photo; this keeps the mood without the
+       third-party request blocking first paint. */
+    background:
+        radial-gradient(ellipse at 50% 20%, rgba(120, 88, 44, 0.35), transparent 60%),
+        radial-gradient(ellipse at 50% 100%, rgba(60, 30, 10, 0.5), transparent 65%),
+        linear-gradient(180deg, #1c1510 0%, #0d0907 60%, #050403 100%);
+    color: var(--ink);
+    font-family: medieval, "Palatino Linotype", Georgia, serif;
 }
 
+/* ---------------------------------------------------------------- title */
 #title {
-    width: 70vw;
-    font-size: 10vh;
-    font-weight: bold;
+    width: min(70vw, 1000px);
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    gap: 2vw;
+    padding: 1.5vw 1vw;
     background-image: url("../images/wall.jpeg");
     background-size: cover;
-    display: flex;
-    justify-content: space-evenly;
-    align-items: center;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px rgba(232, 200, 122, 0.18), 0 18px 50px rgba(0, 0, 0, 0.7);
+}
+
+.title-text {
+    font-size: clamp(2rem, 10vh, 5.5rem);
+    font-weight: 700;
     text-align: center;
-    font-family: medieval;
-    padding-top: 1.5vw;
-    padding-bottom: 1.5vw;
-    padding-left: 1vw;
-    padding-right: 1vw;
-    color: white;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    /* Replaces the two stacked copies of the text the old markup used. */
+    text-shadow: 3px 3px 0 var(--shadow), 0 0 24px rgba(232, 200, 122, 0.25);
 }
 
-.test {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    cursor: pointer;
-}
-
-.test1 {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    cursor: pointer;
-}
-
-.test1:hover {
-    animation: popping 500ms infinite;
-}
-
-.padded {
-    position: absolute;
-    text-align: center;
-    color: white;
-    padding-left: 10px;
-    padding-top: 10px;
-}
-
-.padded1 {
-    position: absolute;
-    text-align: center;
-    color: black
+.crest {
+    width: clamp(48px, 7vw, 110px);
+    aspect-ratio: 1 / 1;
+    flex: none;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
 }
 
 .shield {
-    width: 7vw;
-    aspect-ratio: 1/1;
     background-image: url("../images/shield.png");
-    background-size: 100% 100%;
 }
 
 .sword {
-    width: 7vw;
-    aspect-ratio: 1/1;
     background-image: url("../images/sword.png");
-    background-size: 100% 100%;
 }
 
+/* ----------------------------------------------------------------- menu */
 #options {
-    width: 50vw;
-    height: 40vh;
-    font-size: 7vh;
-    font-weight: bold;
-    background-image: url("../images/framedungeon.png");
-    background-size: 100% 100%;
-    text-align: center;
+    width: min(50vw, 720px);
+    min-height: 40vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    font-family: medieval;
-    color: white;
-    gap: 100px;
+    gap: clamp(24px, 6vh, 70px);
+    padding: 4vh 6vw;
+    background-image: url("../images/framedungeon.png");
+    background-size: 100% 100%;
 }
 
-.options1 {
-    width: 55vw;
-    height: 70vh;
-    font-size: 7vh;
-    font-weight: bold;
-    background-image: url("../images/framedungeon.png");
-    background-size: 100% 100%;
-    text-align: center;
+.menu-item {
+    font-family: inherit;
+    font-size: clamp(1.5rem, 7vh, 3.4rem);
+    font-weight: 700;
+    color: var(--ink);
+    text-shadow: 3px 3px 0 var(--shadow);
+    background: none;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    padding: 4px 16px;
+    border-radius: 8px;
+    transition: color 160ms ease;
+}
+
+.menu-item-small {
+    font-size: clamp(1.1rem, 4vh, 1.8rem);
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+    color: var(--gold);
+    animation: popping 500ms infinite;
+}
+
+.menu-item:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 4px;
+}
+
+/* ---------------------------------------------------------------- panel */
+.panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(55vw, 820px);
+    max-height: 86vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    font-family: medieval;
-    color: white;
-    position: absolute;
-    top: 25vh;
-    gap: 4vh;
-    padding-left: 7.5vw;
-    padding-right: 7.5vw;
+    gap: clamp(14px, 3vh, 28px);
+    padding: clamp(28px, 6vh, 60px) clamp(32px, 7vw, 90px);
+    text-align: center;
+    background-image: url("../images/framedungeon.png");
+    background-size: 100% 100%;
+    /* Huge spread doubles as a full-viewport scrim without extra markup. */
+    box-shadow: 0 0 0 100vmax rgba(6, 4, 3, 0.78);
+}
+
+.panel[hidden] {
+    display: none;
+}
+
+.panel h2 {
+    font-size: clamp(1.6rem, 6vh, 3rem);
+    text-shadow: 3px 3px 0 var(--shadow);
 }
 
 .explanation {
-    font-size: 3vh;
+    font-size: clamp(0.95rem, 2.4vh, 1.3rem);
+    line-height: 1.5;
+    max-width: 60ch;
 }
 
-a {
-    cursor: pointer;
-    text-decoration: none;
-    color: inherit;
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 480px;
+}
+
+.control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    font-size: clamp(0.85rem, 2vh, 1.1rem);
+}
+
+.control dd {
+    color: var(--gold);
+}
+
+kbd {
+    font-family: inherit;
+    display: inline-block;
+    background: rgba(232, 200, 122, 0.16);
+    border: 1px solid var(--panel-edge);
+    border-radius: 4px;
+    padding: 1px 7px;
+    margin: 0 1px;
+    color: var(--gold);
 }
 
 @keyframes popping {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-7.5px); }
+    50% { transform: translateY(-15px); }
+    75% { transform: translateY(-7.5px); }
+}
 
-    0% {
-        transform: translateY(0px);
+@media (prefers-reduced-motion: reduce) {
+    .menu-item:hover,
+    .menu-item:focus-visible {
+        animation: none;
+    }
+}
+
+@media (max-width: 780px) {
+    #title {
+        width: 94vw;
     }
 
-    25% {
-        transform: translateY(-7.5px);
+    #options {
+        width: 94vw;
+        padding: 4vh 8vw;
     }
 
-    50% {
-        transform: translateY(-15px);
+    .panel {
+        width: 94vw;
     }
-
-    75% {
-        transform: translateY(-7.5px);
-    }
-
-    100% {
-        transform: translateY(0px);
-    }
-
 }

@@ -4,44 +4,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./styles/index_styles.css">
+    <meta name="color-scheme" content="dark">
+    <meta name="description" content="Dungeon Dweller - a 2D dungeon exploration and combat game built with vanilla JavaScript.">
     <title>Dungeon Dweller</title>
     <link rel="icon" href="./images/favicon.ico" type="image/x-icon" />
+    <link rel="preload" href="./styles/fonts/MedievalSharp-Regular.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="prefetch" href="./html/game.html" as="document">
+    <link rel="stylesheet" href="./styles/index_styles.css">
 </head>
 
 <body>
-    <div id="title">
-        <div class="shield"></div>
-        <div class="test">
-            <div class="padded1">
-                Dungeon Dweller
+    <header id="title">
+        <div class="crest shield" aria-hidden="true"></div>
+        <h1 class="title-text">Dungeon Dweller</h1>
+        <div class="crest sword" aria-hidden="true"></div>
+    </header>
+
+    <nav id="options" aria-label="Main menu">
+        <a id="startGame" class="menu-item" href="./html/game.html">Start Game</a>
+        <button id="instructions" class="menu-item" type="button" aria-expanded="false"
+            aria-controls="instructions-panel">Instructions</button>
+    </nav>
+
+    <div id="instructions-panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="instructions-title"
+        hidden>
+        <h2 id="instructions-title">The Rules</h2>
+        <p class="explanation">
+            Attention Dungeon Dweller! The rules are simple: survive as long as possible. The skellies are
+            <em>not</em> your friends &mdash; I repeat, NOT YOUR FRIENDS. If you come across them, give them some
+            and kill them QUICK.
+        </p>
+        <dl class="controls">
+            <div class="control">
+                <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd></dt>
+                <dd>Move</dd>
             </div>
-            <div class="padded">
-                Dungeon Dweller
+            <div class="control">
+                <dt><kbd>K</kbd></dt>
+                <dd>Strike with the spear</dd>
             </div>
-        </div>
-        <div class="sword"></div>
+            <div class="control">
+                <dt><kbd>L</kbd></dt>
+                <dd>Cast a fireball (20 mana)</dd>
+            </div>
+            <div class="control">
+                <dt><kbd>P</kbd> / <kbd>Esc</kbd></dt>
+                <dd>Pause</dd>
+            </div>
+        </dl>
+        <button id="closeInstructions" class="menu-item menu-item-small" type="button">Back</button>
     </div>
-    <div id="options">
-        <div class="test1">
-            <div id="startGame" class="padded1"><a href="./html/game.html">
-                    Start Game</a>
-            </div>
-            <div class="padded"><a href="./html/game.html">
-                    Start Game</a>
-            </div>
-        </div>
-        <div id="instructions" class="test1">
-            <div class="padded1">
-                Instructions
-            </div>
-            <div class="padded">
-                Instructions
-            </div>
-        </div>
-    </div>
-    <audio id="intro_audio" src="./sounds/intro_audio.mp3"></audio>
-    <audio id="openBoxAudio" src="./sounds/openBox.mp3"></audio>
+
+    <audio id="intro_audio" src="./sounds/intro_audio.mp3" preload="metadata" loop></audio>
+    <audio id="openBoxAudio" src="./sounds/openBox.mp3" preload="auto"></audio>
     <script src="./src/index.js"></script>
 </body>
 

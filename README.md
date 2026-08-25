@@ -100,8 +100,10 @@ start index.html # Windows
 |------|-------|-------------|
 | **Health** | 100 | Life points; game ends at 0 |
 | **Mana** | 100 | Resource for casting spells |
-| **Attack Power** | 10 | Damage dealt per slash attack |
-| **Movement Speed** | 5 pixels/frame | Character velocity |
+| **Attack Power** | 10 | Damage dealt per spear strike |
+| **Movement Speed** | 300 px/second | Frame-rate independent; diagonals are normalised |
+| **Strike Cooldown** | 320 ms | Minimum time between melee attacks |
+| **Cast Cooldown** | 260 ms | Minimum time between fireballs |
 
 ### Combat System
 - **Melee Attack**: Instantly deals damage to nearby enemies
@@ -110,8 +112,8 @@ start index.html # Windows
 - **Knockback Physics**: Realistic collision-based movement when hit
 
 ### Resource Management
-- **Health**: Regenerates slowly when not in combat
-- **Mana**: Regenerates between spell casts
+- **Health**: Restored only by defeating enemies (+30 per skeleton, +100 per brute)
+- **Mana**: Regenerates 10 per second, capped at 100; each fireball costs 20
 - **Strategic Choices**: Decide between melee attacks (free) and spells (mana cost)
 
 ---
@@ -130,8 +132,7 @@ dungeon-dweller/
 │   └── elements.js           # Game object classes (Player, Enemy, Fireball, etc.)
 ├── styles/
 │   ├── index_styles.css      # Main menu styling
-│   ├── game_styles.css       # Game area styling
-│   ├── restart_styles.css    # Game over screen styling
+│   ├── game_styles.css       # Game area, HUD and overlay styling
 │   └── fonts/                # Custom font files
 ├── images/
 │   ├── character_*.png       # Character sprite images
@@ -179,12 +180,16 @@ dungeon-dweller/
 ### In-Game Controls
 | Key | Action |
 |-----|--------|
-| `↑ / W` | Move up |
-| `↓ / S` | Move down |
-| `← / A` | Move left |
-| `→ / D` | Move right |
-| `K` | Melee attack (slash) |
-| `L` | Cast fireball spell |
+| `W` / `↑` | Move up |
+| `S` / `↓` | Move down |
+| `A` / `←` | Move left |
+| `D` / `→` | Move right |
+| `K` | Strike with the spear |
+| `L` | Cast fireball spell (20 mana) |
+| `P` / `Esc` | Pause / resume |
+
+On the game-over screen, `Enter` restarts and `Esc` returns to the menu. The game
+also pauses itself when the tab loses focus.
 
 ---
 
@@ -199,26 +204,35 @@ Or Install VS Code Live Server extension (Live Server: Open with Live Server)
 
 ### Code Architecture
 
-**gamePlayer Class** (`elements.js`)
-- Manages player position, health, and mana
-- Handles movement and collision detection
-- Processes attack and spell casting
+Both source files are plain scripts - no build step, no bundler.
 
-**Enemy Classes** (`elements.js`)
-- Different enemy types with unique behaviors
-- AI pathfinding towards player
-- Attack cooldown management
+**`elements.js`** exposes a single `DD` global containing the tunable `CONFIG`,
+the geometry helpers, the audio wrapper, and the entity classes.
 
-**Collision System**
-- Pixel-perfect AABB collision detection
-- Response handling for environment obstacles
-- Damage calculation on enemy contact
+- `Entity` - shared base. Positions entities with `transform: translate3d(...)`
+  so movement is composited rather than triggering layout, and guards every DOM
+  write behind a cached previous value, so a stationary entity costs nothing.
+- `Player` / `Enemy` / `FieldObject` / `Fireball` extend it. `Enemy` covers both
+  the skeleton and the brute through the `ENEMY_VARIANTS` table rather than two
+  near-identical classes.
+- `overlaps(a, b)` is a side-effect-free AABB test used for hit detection;
+  `resolve(a, b)` pushes `a` out of `b` along the axis of least penetration and
+  is used for physical blocking. Keeping them separate is what stops attacking
+  from shoving the attacker around.
 
-**Game Loop** (`script.js`)
-- 60 FPS rendering and update cycle
-- Enemy spawning and management
-- Sound effect triggering
-- Score calculation
+**`script.js`** owns the world, input, HUD and the loop.
+
+- Fixed-timestep accumulator at 60 Hz with a 250 ms clamp, so the simulation
+  runs identically on a 60 Hz and a 144 Hz display and cannot fast-forward after
+  the tab is backgrounded.
+- Spawning, mana regen and the survival clock are driven off simulated time
+  inside the loop, so they stop cleanly on pause and on game over.
+- Entities carry an `alive` flag and are swept once per frame by `compact()`,
+  instead of being spliced out of an array that is mid-iteration.
+
+### Tuning
+Gameplay constants live in one place - `CONFIG` and `ENEMY_VARIANTS` at the top
+of `src/elements.js`. Speeds are px/second, cooldowns are milliseconds.
 
 ---
 
@@ -226,11 +240,22 @@ Or Install VS Code Live Server extension (Live Server: Open with Live Server)
 
 ### Current Status: 🟢 Active Development
 
+### Recently Fixed
+- [x] Game speed is now tied to elapsed time instead of the browser's frame rate
+- [x] Animation frame stuttering - walk frames are warmed up after first paint
+- [x] Element caching - sprite/facing changes are driven by CSS attribute
+      selectors instead of per-frame inline style writes
+- [x] Fireball key was bound twice, so every cast spent 40 mana and spawned two
+      projectiles
+- [x] Attacking no longer displaces the player
+- [x] Held keys no longer stick when the window loses focus
+- [x] Resizing re-lays out the arena instead of reloading and losing the run
+
 ### Known Issues
-- [ ] Occasional animation frame stuttering at high enemy counts
-- [ ] Game Speed not defined to elapsed time but controlled by Browser
-- [ ] Not enough element caching impacting rendering
+- [ ] Walk-cycle frames are ~238x356 but display at 40x90, so the sprite sheet is
+      about 4 MB heavier than it needs to be
 - [ ] Mana regeneration balance needs tuning
+- [ ] No mobile/touch controls
 
 ---
 
@@ -295,4 +320,4 @@ Have questions or suggestions? Feel free to:
 
 **Made with ❤️ by the Dungeon Dweller Team**
 
-*Last Updated: January 2026*
+*Last Updated: August 2026*
