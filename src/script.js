@@ -379,15 +379,26 @@
         }
 
         // --- movement
+        const prevX = player.x;
+        const prevY = player.y;
         player.update(dt, input);
         for (const enemy of enemies) enemy.chase(player, dt);
         for (const fireball of fireballs) fireball.update(dt);
+
+        // --- enemies are solid, and neither body shoves the other: walking into
+        //     a skeleton stops the player without moving it, and a skeleton
+        //     walking into the player does not shove the player either.
+        for (const enemy of enemies) blockMovement(player, enemy, prevX, prevY);
 
         // --- scenery blocks both the player and the enemies
         for (const object of fieldObjects) {
             resolve(player, object);
             for (const enemy of enemies) resolve(enemy, object);
         }
+
+        // Positions were corrected after update(), so repaint at the final spot.
+        player.render();
+        for (const enemy of enemies) enemy.render();
 
         // --- enemy contact damage
         for (const enemy of enemies) {
@@ -429,6 +440,27 @@
             spearTimer -= dtMs;
             if (spearTimer <= 0) spear.classList.remove("is-active");
         }
+    }
+
+    /**
+     * Undo only the movement `entity` made itself where it would end up inside
+     * `blocker`, one axis at a time so it slides along the body instead of
+     * sticking. Unlike resolve(), this never displaces either party - an enemy
+     * that walks into a standing player leaves the player exactly where it was.
+     */
+    function blockMovement(entity, blocker, prevX, prevY) {
+        if (!overlaps(entity, blocker)) return;
+        const movedX = entity.x;
+        const movedY = entity.y;
+
+        entity.x = prevX;                        // blocked horizontally?
+        if (!overlaps(entity, blocker)) return;
+
+        entity.x = movedX;
+        entity.y = prevY;                        // blocked vertically?
+        if (!overlaps(entity, blocker)) return;
+
+        entity.x = prevX;                        // blocked both ways
     }
 
     /**

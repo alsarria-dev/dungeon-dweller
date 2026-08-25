@@ -106,10 +106,12 @@ start index.html # Windows
 | **Cast Cooldown** | 260 ms | Minimum time between fireballs |
 
 ### Combat System
-- **Melee Attack**: Instantly deals damage to nearby enemies
+- **Melee Attack**: Strikes a reach box in the direction you are facing
 - **Fireball Spell**: Ranged attack consuming mana, perfect for distant enemies
-- **Enemy Attacks**: Take damage when enemies connect with melee attacks
-- **Knockback Physics**: Realistic collision-based movement when hit
+- **Enemy Attacks**: Take damage when an enemy is in contact and off cooldown
+- **Solid Bodies**: Enemies cannot be shoved. Walking into one stops you (you
+  slide along it rather than sticking), and an enemy walking into you never
+  displaces you - so nothing can push you into the lava
 
 ### Resource Management
 - **Health**: Restored only by defeating enemies (+30 per skeleton, +100 per brute)

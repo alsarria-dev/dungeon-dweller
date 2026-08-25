@@ -24,19 +24,22 @@ const DD = (() => {
             manaRegen: 10,
             manaRegenInterval: 1000,
         },
-        fireball: { speed: 1200, attack: 25, manaCost: 20, explodeMs: 300 },
+        fireball: { speed: 1200, attack: 25, manaCost: 20, explodeMs: 300, blastSize: 100 },
         spawn: { interval: 3500, bossInterval: 25000, softCap: 5, safeRadius: 220, maxTries: 24 },
+        // Separation leaves bodies exactly touching, which a strict overlap test
+        // reads as "apart". Enemies reach this far past their box to connect.
+        contactReach: 6,
     };
 
     const ENEMY_VARIANTS = {
         enemy: {
             className: "enemy", iconClass: "iconEnemy", barClass: "health-barEnemy",
-            maxLife: 100, attack: 5, speed: 200, attackCooldown: 700,
+            maxLife: 100, attack: 5, speed: 165, attackCooldown: 700,
             score: 10, lifeReward: 30, manaReward: 40,
         },
         enemySpecial: {
             className: "enemySpecial", iconClass: "iconEnemySpecial", barClass: "health-barEnemySpecial",
-            maxLife: 300, attack: 20, speed: 150, attackCooldown: 900,
+            maxLife: 300, attack: 20, speed: 120, attackCooldown: 900,
             score: 100, lifeReward: 100, manaReward: 100,
         },
     };
@@ -346,25 +349,43 @@ const DD = (() => {
             const dx = player.centerX - this.centerX;
             const dy = player.centerY - this.centerY;
             const distance = Math.hypot(dx, dy);
+
+            // Face the player whether or not we can close the gap.
             if (distance > 1) {
+                this.facing = Math.abs(dx) > Math.abs(dy)
+                    ? (dx < 0 ? "left" : "right")
+                    : (dy < 0 ? "up" : "down");
+            }
+
+            // Stand firm once in contact, so neither body shoves the other.
+            if (distance > 1 && !overlaps(this, player)) {
                 const scale = this.speed * dt / distance;
                 this.x += dx * scale;
                 this.y += dy * scale;
                 this.x = clamp(this.x, 0, this.bounds.width - this.width);
                 this.y = clamp(this.y, 0, this.bounds.height - this.height);
-                this.facing = Math.abs(dx) > Math.abs(dy)
-                    ? (dx < 0 ? "left" : "right")
-                    : (dy < 0 ? "up" : "down");
             }
+
             if (this.attackTimer > 0) this.attackTimer -= dt * 1000;
             this.setFacing(this.icon, this.facing);
             this.render();
         }
 
-        /** Returns damage dealt this step (0 when out of range or on cooldown). */
+        /**
+         * Returns damage dealt this step (0 when out of range or on cooldown).
+         * A pure overlap test - separating the bodies is the caller's job, so
+         * that landing a hit never displaces the enemy.
+         */
         strike(player) {
-            const touching = resolve(this, player);
-            if (!touching || this.attackTimer > 0) return 0;
+            if (this.attackTimer > 0) return 0;
+            const reach = CONFIG.contactReach;
+            const hitbox = {
+                x: this.x - reach,
+                y: this.y - reach,
+                width: this.width + reach * 2,
+                height: this.height + reach * 2,
+            };
+            if (!overlaps(hitbox, player)) return 0;
             this.attackTimer = this.variant.attackCooldown;
             return this.attack;
         }
@@ -487,8 +508,17 @@ const DD = (() => {
             if (this.exploded) return;
             this.exploded = true;
             this.alive = false;
+
+            // The blast is square and larger than the bolt, so re-anchor it on the
+            // bolt's centre; otherwise it renders offset from the impact point.
+            // Kept inside the arena so a wall hit is still visible.
+            const size = CONFIG.fireball.blastSize;
+            const x = clamp(this.centerX - size / 2, 0, this.bounds.width - size);
+            const y = clamp(this.centerY - size / 2, 0, this.bounds.height - size);
+            this.element.style.setProperty("--ex", `${Math.round(x)}px`);
+            this.element.style.setProperty("--ey", `${Math.round(y)}px`);
             this.element.classList.add("exploding");
-            this.render();
+
             setTimeout(() => this.element.remove(), CONFIG.fireball.explodeMs);
         }
     }

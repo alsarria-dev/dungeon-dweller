@@ -26,12 +26,13 @@ body {
     gap: clamp(32px, 8vh, 90px);
     min-height: 100vh;
     padding: 4vh 4vw;
-    /* Was a remote blenderartists.org photo; this keeps the mood without the
-       third-party request blocking first paint. */
+    /* The original artwork, now served locally instead of from blenderartists.org.
+       The gradients on top keep the menu text legible over it. */
     background:
-        radial-gradient(ellipse at 50% 20%, rgba(120, 88, 44, 0.35), transparent 60%),
-        radial-gradient(ellipse at 50% 100%, rgba(60, 30, 10, 0.5), transparent 65%),
-        linear-gradient(180deg, #1c1510 0%, #0d0907 60%, #050403 100%);
+        radial-gradient(ellipse at 50% 20%, rgba(120, 88, 44, 0.28), transparent 62%),
+        linear-gradient(180deg, rgba(20, 14, 10, 0.45) 0%, rgba(10, 7, 5, 0.62) 65%, rgba(4, 3, 2, 0.8) 100%),
+        url("../images/menu_bg.jpeg") center / cover no-repeat fixed,
+        #0d0907;
     color: var(--ink);
     font-family: medieval, "Palatino Linotype", Georgia, serif;
 }
